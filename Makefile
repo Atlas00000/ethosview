@@ -58,3 +58,53 @@ deps:
 sum:
 	go mod tidy
 	go mod verify
+
+# Database operations
+migrate:
+	@echo "Running database migrations..."
+	@chmod +x scripts/migrate.sh
+	@./scripts/migrate.sh
+
+migrate-seed:
+	@echo "Running database migrations with seed data..."
+	@chmod +x scripts/migrate.sh
+	@./scripts/migrate.sh --seed
+
+# Performance testing
+test-performance:
+	@echo "Running performance tests..."
+	@chmod +x scripts/performance_test.sh
+	@./scripts/performance_test.sh
+
+# Phase 2 testing
+test-phase2:
+	@echo "Running Phase 2 tests..."
+	@chmod +x scripts/phase2_test.sh
+	@./scripts/phase2_test.sh
+
+# Phase 3 testing
+test-phase3:
+	@echo "Running Phase 3 tests..."
+	@chmod +x scripts/phase3_test.sh
+	@./scripts/phase3_test.sh
+
+# Apply performance optimizations
+optimize:
+	@echo "Applying performance optimizations..."
+	@chmod +x scripts/migrate.sh
+	@./scripts/migrate.sh
+	@echo "✅ Performance optimizations applied successfully!"
+
+# Apply Phase 2 optimizations
+optimize-phase2:
+	@echo "Applying Phase 2 optimizations..."
+	@chmod +x scripts/migrate.sh
+	@./scripts/migrate.sh
+	@echo "✅ Phase 2 optimizations applied successfully!"
+
+# Apply Phase 3 optimizations
+optimize-phase3:
+	@echo "Applying Phase 3 optimizations..."
+	@chmod +x scripts/migrate.sh
+	@./scripts/migrate.sh
+	@echo "✅ Phase 3 optimizations applied successfully!"

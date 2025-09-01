@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"ethosview-backend/pkg/errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
@@ -43,11 +45,7 @@ func (rl *RateLimiter) RateLimitMiddleware(requestsPerMinute int) gin.HandlerFun
 
 		// Check if limit exceeded
 		if count >= requestsPerMinute {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "Rate limit exceeded",
-				"limit": requestsPerMinute,
-				"reset": "in 1 minute",
-			})
+			errors.HandleRateLimitError(c, requestsPerMinute)
 			c.Abort()
 			return
 		}
@@ -97,11 +95,7 @@ func (rl *RateLimiter) UserRateLimitMiddleware(requestsPerMinute int) gin.Handle
 
 		// Check if limit exceeded
 		if count >= requestsPerMinute {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "User rate limit exceeded",
-				"limit": requestsPerMinute,
-				"reset": "in 1 minute",
-			})
+			errors.HandleRateLimitError(c, requestsPerMinute)
 			c.Abort()
 			return
 		}

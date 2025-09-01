@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"ethosview-backend/internal/models"
+	"ethosview-backend/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,58 +27,50 @@ func NewESGHandler(db *sql.DB) *ESGHandler {
 func (h *ESGHandler) CreateESGScore(c *gin.Context) {
 	var score models.ESGScore
 	if err := c.ShouldBindJSON(&score); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		errors.HandleValidationError(c, err)
 		return
 	}
 
 	if err := h.repo.CreateESGScore(&score); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ESG score"})
+		errors.HandleDatabaseError(c, err, "ESG score")
 		return
 	}
 
-	c.JSON(http.StatusCreated, score)
+	errors.SuccessResponse(c, score)
 }
 
 // GetESGScore handles GET /api/v1/esg/scores/:id
 func (h *ESGHandler) GetESGScore(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ESG score ID"})
+		errors.HandleValidationError(c, errors.ErrInvalidInput)
 		return
 	}
 
 	score, err := h.repo.GetESGScoreByID(id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"error": "ESG score not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve ESG score"})
+		errors.HandleDatabaseError(c, err, "ESG score")
 		return
 	}
 
-	c.JSON(http.StatusOK, score)
+	errors.SuccessResponse(c, score)
 }
 
 // GetLatestESGScoreByCompany handles GET /api/v1/esg/companies/:id/latest
 func (h *ESGHandler) GetLatestESGScoreByCompany(c *gin.Context) {
 	companyID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid company ID"})
+		errors.HandleValidationError(c, errors.ErrInvalidInput)
 		return
 	}
 
 	score, err := h.repo.GetLatestESGScoreByCompany(companyID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"error": "ESG score not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve ESG score"})
+		errors.HandleDatabaseError(c, err, "ESG score")
 		return
 	}
 
-	c.JSON(http.StatusOK, score)
+	errors.SuccessResponse(c, score)
 }
 
 // GetESGScoresByCompany handles GET /api/v1/esg/companies/:id/scores

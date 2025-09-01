@@ -8,7 +8,13 @@ import (
 	"ethosview-backend/internal/handlers"
 	"ethosview-backend/internal/websocket"
 	"ethosview-backend/pkg/auth"
+	"ethosview-backend/pkg/cache"
+	"ethosview-backend/pkg/dashboard"
+	"ethosview-backend/pkg/health"
+	"ethosview-backend/pkg/metrics"
 	"ethosview-backend/pkg/middleware"
+	"ethosview-backend/pkg/monitoring"
+	"ethosview-backend/pkg/security"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -16,10 +22,17 @@ import (
 
 // Server represents the HTTP server
 type Server struct {
-	router    *gin.Engine
-	db        *sql.DB
-	redis     *redis.Client
-	wsManager *websocket.Manager
+	router             *gin.Engine
+	db                 *sql.DB
+	redis              *redis.Client
+	wsManager          *websocket.Manager
+	cacheWarmer        *cache.CacheWarmer
+	advancedCache      *cache.AdvancedCache
+	metricsCollector   *metrics.MetricsCollector
+	healthChecker      *health.HealthChecker
+	securityMiddleware *security.SecurityMiddleware
+	businessDashboard  *dashboard.BusinessDashboard
+	alertManager       *monitoring.AlertManager
 }
 
 // NewServer creates and configures a new server instance
@@ -32,14 +45,24 @@ func NewServer(db *sql.DB, redis *redis.Client) *Server {
 
 	// Create server instance
 	srv := &Server{
-		router:    router,
-		db:        db,
-		redis:     redis,
-		wsManager: websocket.NewManager(),
+		router:             router,
+		db:                 db,
+		redis:              redis,
+		wsManager:          websocket.NewManager(),
+		cacheWarmer:        cache.NewCacheWarmer(redis, db),
+		advancedCache:      cache.NewAdvancedCache(redis, "ethosview"),
+		metricsCollector:   metrics.NewMetricsCollector(redis, db),
+		healthChecker:      health.NewHealthChecker(db, redis),
+		securityMiddleware: security.NewSecurityMiddleware(),
+		businessDashboard:  dashboard.NewBusinessDashboard(db, redis),
+		alertManager:       monitoring.NewAlertManager(db, redis),
 	}
 
 	// Setup routes
 	srv.setupRoutes()
+
+	// Start background services
+	srv.startBackgroundServices()
 
 	return srv
 }
@@ -50,13 +73,28 @@ func (s *Server) setupRoutes() {
 	rateLimiter := middleware.NewRateLimiter(s.redis)
 	monitoringMiddleware := middleware.MonitoringMiddleware()
 	cacheMiddleware := middleware.CacheMiddleware(s.redis, 5*time.Minute)
+	compressionMiddleware := middleware.CompressionMiddleware()
+	requestIDMiddleware := middleware.RequestIDMiddleware()
 
 	// Apply global middleware
+	s.router.Use(requestIDMiddleware)
+	s.router.Use(compressionMiddleware)
 	s.router.Use(monitoringMiddleware)
+	s.router.Use(s.securityMiddleware.SecurityHeaders())
+	s.router.Use(s.securityMiddleware.CORS())
+	s.router.Use(s.securityMiddleware.InputSanitization())
+	s.router.Use(s.securityMiddleware.SQLInjectionProtection())
+	s.router.Use(s.securityMiddleware.XSSProtection())
+	s.router.Use(s.securityMiddleware.RequestSizeLimit(10 * 1024 * 1024)) // 10MB limit
 
-	// Health check endpoint
-	s.router.GET("/health", s.healthCheck)
-	s.router.GET("/metrics", middleware.HealthCheckMiddleware())
+	// Health check endpoints
+	s.router.GET("/health", s.healthChecker.HealthCheckHandler())
+	s.router.GET("/health/detailed", s.healthChecker.DetailedHealthCheckHandler())
+	s.router.GET("/health/ready", s.healthChecker.ReadinessCheckHandler())
+	s.router.GET("/health/live", s.healthChecker.LivenessCheckHandler())
+	s.router.GET("/metrics", s.metricsHandler)
+	s.router.GET("/alerts", s.alertsHandler)
+	s.router.GET("/dashboard/business", s.businessDashboardHandler)
 
 	// Initialize JWT manager and middleware
 	jwtManager := auth.NewJWTManager()
@@ -66,7 +104,7 @@ func (s *Server) setupRoutes() {
 	v1 := s.router.Group("/api/v1")
 	{
 		// Health check for API
-		v1.GET("/health", s.healthCheck)
+		v1.GET("/health", s.healthChecker.HealthCheckHandler())
 
 		// Initialize handlers
 		authHandler := handlers.NewAuthHandler(s.db)
@@ -158,34 +196,55 @@ func (s *Server) setupRoutes() {
 	}
 }
 
-// healthCheck handles health check requests
-func (s *Server) healthCheck(c *gin.Context) {
-	// Check database connection
-	if err := s.db.Ping(); err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status":  "error",
-			"message": "Database connection failed",
-			"error":   err.Error(),
-		})
-		return
-	}
+// startBackgroundServices starts background services
+func (s *Server) startBackgroundServices() {
+	// Start cache warming (every 30 minutes)
+	s.cacheWarmer.StartCacheWarming(30 * time.Minute)
 
-	// Check Redis connection
-	ctx := c.Request.Context()
-	if err := s.redis.Ping(ctx).Err(); err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status":  "error",
-			"message": "Redis connection failed",
-			"error":   err.Error(),
-		})
-		return
-	}
+	// Start metrics collection (every 5 minutes)
+	s.metricsCollector.StartMetricsCollection(5 * time.Minute)
+	
+	// Start performance monitoring and alerting (every 1 minute)
+	s.alertManager.StartMonitoring(1 * time.Minute)
+}
 
+// metricsHandler handles metrics requests
+func (s *Server) metricsHandler(c *gin.Context) {
+	metrics := s.metricsCollector.GetMetrics()
+	c.JSON(http.StatusOK, metrics)
+}
+
+// alertsHandler handles alerts requests
+func (s *Server) alertsHandler(c *gin.Context) {
+	// Check if requesting all alerts or just active ones
+	showAll := c.Query("all") == "true"
+	
+	var alerts []monitoring.Alert
+	if showAll {
+		alerts = s.alertManager.GetAllAlerts()
+	} else {
+		alerts = s.alertManager.GetActiveAlerts()
+	}
+	
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "healthy",
-		"message": "All services are running",
-		"version": "1.0.0",
+		"alerts": alerts,
+		"count":  len(alerts),
+		"active_only": !showAll,
 	})
+}
+
+// businessDashboardHandler handles business dashboard requests
+func (s *Server) businessDashboardHandler(c *gin.Context) {
+	dashboard, err := s.businessDashboard.GetDashboardData()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve dashboard data",
+			"details": err.Error(),
+		})
+		return
+	}
+	
+	c.JSON(http.StatusOK, dashboard)
 }
 
 // Run starts the HTTP server

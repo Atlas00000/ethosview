@@ -1,43 +1,35 @@
 #!/bin/bash
 
 # Database migration script for EthosView
-# Week 2: Database Schema & Basic Structure
+# This script applies all database migrations in order
 
 set -e
 
-echo "🚀 Starting EthosView database migration..."
+# Database configuration
+DB_HOST=${DB_HOST:-localhost}
+DB_PORT=${DB_PORT:-5432}
+DB_NAME=${DB_NAME:-ethosview}
+DB_USER=${DB_USER:-postgres}
+DB_PASSWORD=${DB_PASSWORD:-password}
 
-# Check if PostgreSQL container is running
-if ! docker ps | grep -q ethosview-postgres; then
-    echo "❌ PostgreSQL container is not running. Please start the services first:"
-    echo "   docker-compose up -d"
-    exit 1
+echo "Starting database migrations..."
+
+# Apply migrations in order
+echo "Applying initial schema migration..."
+psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -f scripts/migrations/001_initial_schema.sql
+
+echo "Applying financial data migration..."
+psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -f scripts/migrations/002_financial_data.sql
+
+echo "Applying performance optimization migration..."
+psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -f scripts/migrations/003_performance_optimization.sql
+
+echo "Database migrations completed successfully!"
+
+# Optional: Run seed data
+if [ "$1" = "--seed" ]; then
+    echo "Applying seed data..."
+    psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -f scripts/seeds/sample_data.sql
+    psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -f scripts/seeds/financial_data.sql
+    echo "Seed data applied successfully!"
 fi
-
-echo "📊 Running database migrations..."
-
-# Run the initial schema migration
-echo "Creating database schema..."
-docker exec -i ethosview-postgres psql -U postgres -d ethosview < scripts/migrations/001_initial_schema.sql
-
-echo "✅ Database schema created successfully!"
-
-# Run the seed data
-echo "🌱 Seeding sample data..."
-docker exec -i ethosview-postgres psql -U postgres -d ethosview < scripts/seeds/sample_data.sql
-
-echo "✅ Sample data seeded successfully!"
-
-echo "🎉 Database migration completed!"
-echo ""
-echo "📋 Summary:"
-echo "   - Database schema created"
-echo "   - Sample companies added (10 companies)"
-echo "   - Sample ESG scores added (16 scores)"
-echo "   - Indexes created for performance"
-echo "   - Triggers created for updated_at timestamps"
-echo ""
-echo "🔗 You can now test the API endpoints:"
-echo "   - GET /api/v1/companies"
-echo "   - GET /api/v1/esg/scores"
-echo "   - GET /api/v1/companies/sectors"
