@@ -202,19 +202,19 @@ func (r *AnalyticsRepository) GetFinancialComparisons(limit int) ([]FinancialCom
 		SELECT 
 			c.id as company_id,
 			c.name as company_name,
-			lp.close_price as current_price,
+			COALESCE(lp.close_price, 0) as current_price,
 			0 as price_change,
 			0 as price_change_pct,
-			lf.market_cap,
-			lf.pe_ratio,
-			le.overall_score,
-			ep.percentile as esg_percentile
+			COALESCE(lf.market_cap, 0) as market_cap,
+			COALESCE(lf.pe_ratio, 0) as pe_ratio,
+			COALESCE(le.overall_score, 0) as overall_score,
+			COALESCE(ep.percentile, 0) as esg_percentile
 		FROM companies c
 		LEFT JOIN latest_price lp ON c.id = lp.company_id
 		LEFT JOIN latest_financial lf ON c.id = lf.company_id
 		LEFT JOIN latest_esg le ON c.id = le.company_id
 		LEFT JOIN esg_percentiles ep ON c.id = ep.company_id
-		ORDER BY le.overall_score DESC
+		ORDER BY COALESCE(le.overall_score, 0) DESC
 		LIMIT $1
 	`
 

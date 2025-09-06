@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+:root {
+  /* Ethos Cloud brand tokens */
+  --brand-blue: #1E6AE1;
+  --brand-green: #1D9A6C;
+  --brand-milk: #F5F7FA;
+  --text-primary: #0B2545;
+  --text-secondary: #374151;
+  --ok: #1D9A6C;
+  --warn: #FFB547;
+  --bad: #E25555;
+
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-blur: 16px;
+
+  --background: var(--brand-milk);
+  --foreground: var(--text-primary);
+
+  /* Vibrant gradient stops */
+  --blue-a: #1E6AE1;
+  --blue-b: #3986FF;
+  --teal-a: #2AB3A6;
+  --teal-b: #1DAA8E;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: transparent;
+  color: var(--foreground);
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(120%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(120%);
+  box-shadow: 0 8px 30px rgba(16, 24, 40, 0.08);
+  border-radius: 16px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue-a), var(--teal-a));
+  color: white;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 6px 18px rgba(30, 106, 225, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30, 106, 225, 0.35);
+}
+
+/* Motion tokens */
+:root {
+  --ease-enter: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-tap: 140ms;
+  --dur-hover: 200ms;
+  --dur-section: 320ms;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slow-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up var(--dur-section) var(--ease-enter) both;
+}
+
+.hover-lift {
+  transition: transform var(--dur-hover) var(--ease-enter), box-shadow var(--dur-hover) var(--ease-enter);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.12);
+}
+
+.edge-fade {
+  mask-image: linear-gradient(90deg, transparent, black 24px, black calc(100% - 24px), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 24px, black calc(100% - 24px), transparent);
+}
+
+.animated-gradient {
+  background: linear-gradient(135deg, var(--blue-a) 0%, var(--teal-a) 50%, var(--blue-b) 100%);
+  background-size: 200% 200%;
+  animation: slow-gradient-shift 12s ease-in-out infinite;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--blue-a), var(--teal-a));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.shadow-elevated {
+  box-shadow: 0 10px 22px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.06);
+}
+
+/* Ambient application background */
+.app-shell {
+  position: relative;
+  min-height: 100dvh;
+  background: linear-gradient(180deg, #F5F7FA 0%, #E6F7F2 100%);
+  background-size: 200% 200%;
+  animation: slow-gradient-shift 18s ease-in-out infinite;
+}
+.blob {
+  position: absolute;
+  pointer-events: none;
+  filter: blur(40px);
+}
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  /* Soft blue/teal ambient glows */
+  background:
+    radial-gradient(1000px 500px at 10% -10%, rgba(30, 106, 225, 0.12), transparent 60%),
+    radial-gradient(900px 480px at 90% -5%, rgba(42, 179, 166, 0.12), transparent 60%);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

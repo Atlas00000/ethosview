@@ -19,7 +19,10 @@ CREATE INDEX IF NOT EXISTS idx_financial_indicators_market_cap ON financial_indi
 
 -- Partial indexes for active data
 CREATE INDEX IF NOT EXISTS idx_companies_active ON companies(id) WHERE market_cap > 0;
-CREATE INDEX IF NOT EXISTS idx_esg_scores_recent ON esg_scores(company_id, score_date DESC) WHERE score_date >= CURRENT_DATE - INTERVAL '1 year';
+-- NOTE: Avoid dynamic predicates (e.g., CURRENT_DATE) in partial indexes as they are not IMMUTABLE in Postgres.
+-- The following index previously attempted to index only recent rows and failed during migration.
+-- We rely on existing date and composite indexes instead for MVP simplicity and stability.
+-- CREATE INDEX idx_esg_scores_recent ON esg_scores(company_id, score_date DESC) WHERE score_date >= CURRENT_DATE - INTERVAL '1 year';
 
 -- Text search indexes for company search
 CREATE INDEX IF NOT EXISTS idx_companies_name_gin ON companies USING gin(to_tsvector('english', name));
@@ -27,7 +30,8 @@ CREATE INDEX IF NOT EXISTS idx_companies_symbol_gin ON companies USING gin(to_ts
 
 -- Indexes for analytics queries
 CREATE INDEX IF NOT EXISTS idx_esg_scores_sector_date ON esg_scores(score_date DESC) INCLUDE (overall_score, environmental_score, social_score, governance_score);
-CREATE INDEX IF NOT EXISTS idx_stock_prices_date_range ON stock_prices(date) WHERE date >= CURRENT_DATE - INTERVAL '1 year';
+-- See note above about dynamic predicates in partial indexes. Existing date indexes already cover typical range queries.
+-- CREATE INDEX idx_stock_prices_date_range ON stock_prices(date) WHERE date >= CURRENT_DATE - INTERVAL '1 year';
 
 -- Performance optimization: Add covering indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_esg_scores_company_covering ON esg_scores(company_id, score_date DESC) 
