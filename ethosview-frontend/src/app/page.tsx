@@ -1,12 +1,12 @@
 import type { DashboardResponse, AnalyticsSummaryResponse, MarketLatestResponse } from "../types/api";
 import { api } from "../services/api";
-import { Hero } from "../components/home/Hero";
+import { HeroSlider } from "../components/home/HeroSlider";
 import { MarketBar } from "../components/home/MarketBar";
 import { FeaturedCarousel } from "../components/home/FeaturedCarousel";
 import { SectorHeatmap } from "../components/home/SectorHeatmap";
 import { BusinessPreview } from "../components/home/BusinessPreview";
 import { SymbolLookup } from "../components/home/SymbolLookup";
-import { ESGHighlights } from "../components/home/ESGHighlights";
+import { ESGHighlightsPro } from "../components/home/ESGHighlightsPro";
 import { MarketSparkline } from "../components/home/MarketSparkline";
 import { CorrelationTeaser } from "../components/home/CorrelationTeaser";
 import { PELeaders } from "../components/home/PELeaders";
@@ -59,7 +59,7 @@ export default async function HomePage() {
   return (
     <main>
       <div id="hero">
-        <Hero dashboard={dashboard} analytics={analytics} />
+        <HeroSlider dashboard={dashboard} analytics={analytics} market={market} history={history} esgTrends={esgTrends} />
       </div>
       <div id="market">
         <MarketBar market={market} />
@@ -73,7 +73,7 @@ export default async function HomePage() {
         </div>
       </div>
       <div id="esg">
-        <ESGHighlights top={analytics.top_esg_performers} />
+        <ESGHighlightsPro analytics={analytics} />
         <CorrelationTeaser corr={corr} />
         <ESGTrendMini trends={esgTrends} />
       </div>
