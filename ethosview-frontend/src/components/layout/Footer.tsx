@@ -1,12 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { api } from "../../services/api";
+import { api, API_BASE_URL } from "../../services/api";
 
 export function Footer() {
   const [metrics, setMetrics] = useState<{ timestamp?: string } | null>(null);
   useEffect(() => {
     let alive = true;
-    fetch(`${api.API_BASE_URL ?? ''}/metrics`).then(r => r.ok ? r.json() : null).then((m) => { if (alive) setMetrics(m); }).catch(() => {});
+    fetch(`${API_BASE_URL}/metrics`).then(r => (r.ok ? r.json() : null)).then((m) => { if (alive) setMetrics(m); }).catch(() => {});
     return () => { alive = false; };
   }, []);
   return (

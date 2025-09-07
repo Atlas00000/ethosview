@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { AnalyticsSummaryResponse, ESGTrendsResponse, LatestESGResponse, LatestPriceResponse, CompanyResponse } from "../../types/api";
+import type { AnalyticsSummaryResponse, ESGTrendsResponse, LatestESGResponse, CompanyResponse, CompanyFinancialSummaryResponse } from "../../types/api";
 import { api } from "../../services/api";
 import { ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, BarChart, Bar, ReferenceLine } from "recharts";
 import { useCountUp } from "./useCountUp";
@@ -12,7 +12,7 @@ export function ESGHighlightsPro({ analytics }: Props) {
   const [selectedId, setSelectedId] = useState<number | null>(list.length ? list[0].company_id : null);
   const [trends, setTrends] = useState<ESGTrendsResponse | null>(null);
   const [latest, setLatest] = useState<LatestESGResponse | null>(null);
-  const [price, setPrice] = useState<LatestPriceResponse | null>(null);
+  const [finSummary, setFinSummary] = useState<CompanyFinancialSummaryResponse | null>(null);
   const [company, setCompany] = useState<CompanyResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [days, setDays] = useState<number>(60);
@@ -27,16 +27,16 @@ export function ESGHighlightsPro({ analytics }: Props) {
     if (!selectedId) return;
     setLoading(true);
     Promise.all([
-      api.esgTrends(selectedId, days),
-      api.latestESG(selectedId),
-      api.latestPrice(selectedId),
-      api.companyById(selectedId),
+      api.esgTrends(selectedId, days).catch(() => null),
+      api.latestESG(selectedId).catch(() => null),
+      api.companyFinancialSummary(selectedId).catch(() => null),
+      api.companyById(selectedId).catch(() => null),
     ])
-      .then(([t, l, p, c]) => {
-        setTrends(t);
-        setLatest(l);
-        setPrice(p);
-        setCompany(c as CompanyResponse);
+      .then(([t, l, s, c]) => {
+        setTrends(t as ESGTrendsResponse | null);
+        setLatest(l as LatestESGResponse | null);
+        setFinSummary(s as CompanyFinancialSummaryResponse | null);
+        setCompany(c as CompanyResponse | null);
       })
       .finally(() => setLoading(false));
   }, [selectedId, days]);
@@ -94,6 +94,9 @@ export function ESGHighlightsPro({ analytics }: Props) {
     return row ? row.avg_esg_score : null;
   }, [company?.sector, analytics.sector_comparisons]);
 
+  // Graceful degrade: if summary missing, display badges indicating "No financial data"
+  const noFin = !finSummary?.summary;
+
   return (
     <section className="max-w-6xl mx-auto px-4 py-12 relative overflow-hidden"
       onMouseEnter={() => setPaused(true)}
@@ -132,7 +135,7 @@ export function ESGHighlightsPro({ analytics }: Props) {
             </div>
             <div className="text-right">
               <div className="text-xs" style={{ color: "#374151" }}>Price</div>
-              <div className="text-lg font-semibold" style={{ color: "#0B2545" }}>{price?.price?.close_price?.toFixed ? price.price.close_price.toFixed(2) : '—'}</div>
+              <div className="text-lg font-semibold" style={{ color: "#0B2545" }}>{finSummary?.summary?.current_price != null ? finSummary.summary.current_price.toFixed(2) : '—'}</div>
             </div>
           </div>
 

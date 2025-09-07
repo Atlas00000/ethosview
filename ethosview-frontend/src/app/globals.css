@@ -251,6 +251,131 @@ body {
   left: 150%;
 }
 
+/* Scroll reveal utility */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(24px) scale(0.96);
+  filter: blur(2px);
+  transition: opacity 700ms var(--ease-enter), transform 700ms var(--ease-enter), filter 700ms var(--ease-enter);
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* Glow ping for attention */
+@keyframes glow-ping {
+  0% { box-shadow: 0 0 0 0 rgba(29,154,108,0.0); }
+  50% { box-shadow: 0 0 0 8px rgba(29,154,108,0.10); }
+  100% { box-shadow: 0 0 0 0 rgba(29,154,108,0.0); }
+}
+.glow-ping {
+  animation: glow-ping 2400ms ease-in-out infinite;
+}
+
+/* Neon glow and spotlight hover */
+.card-glow {
+  box-shadow: 0 10px 30px rgba(30,106,225,0.18), 0 6px 16px rgba(42,179,166,0.16);
+}
+.spotlight-hover {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight-hover::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(400px 200px at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.18), transparent 60%);
+  opacity: 0;
+  transition: opacity var(--dur-hover) var(--ease-enter);
+}
+.spotlight-hover:hover::before { opacity: 1; }
+
+/* Animated ribbons */
+.ribbon {
+  position: absolute;
+  pointer-events: none;
+  filter: blur(14px);
+  opacity: 0.35;
+}
+.ribbon-blue {
+  background: linear-gradient(90deg, rgba(30,106,225,0.75), rgba(42,179,166,0.75));
+  width: 120%;
+  height: 120px;
+  transform: rotate(-6deg) translateY(-20px);
+  animation: ribbon-shift 14s ease-in-out infinite;
+}
+.ribbon-green {
+  background: linear-gradient(90deg, rgba(154,211,106,0.7), rgba(30,106,225,0.6));
+  width: 110%;
+  height: 100px;
+  transform: rotate(5deg) translateY(10px);
+  animation: ribbon-shift 18s ease-in-out infinite reverse;
+}
+@keyframes ribbon-shift {
+  0% { transform: translateX(-5%) rotate(var(--rot, -6deg)); }
+  50% { transform: translateX(5%) rotate(var(--rot, -6deg)); }
+  100% { transform: translateX(-5%) rotate(var(--rot, -6deg)); }
+}
+
+/* Mobile helpers */
+.mobile-only { display: block; }
+.desktop-only { display: none; }
+@media (min-width: 640px) {
+  .mobile-only { display: none; }
+  .desktop-only { display: block; }
+}
+.mobile-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-x-row {
+  display: flex;
+  gap: 0.75rem;
+  scroll-snap-type: x mandatory;
+}
+.snap-item {
+  scroll-snap-align: start;
+  min-width: 180px;
+}
+.card-compact {
+  padding: 0.75rem;
+  border-radius: 12px;
+}
+
+/* Section bands and headings for aesthetic layout */
+.section-band {
+  padding-top: 2.5rem; /* py-10 equivalent for sections already spacing themselves */
+  padding-bottom: 2.5rem;
+}
+.section-band.band-a {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.55) 100%);
+}
+.section-band.band-b {
+  background:
+    linear-gradient(180deg, rgba(230,247,242,0.35) 0%, rgba(245,247,250,0.0) 100%);
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.section-heading .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--blue-a), var(--teal-a));
+  box-shadow: 0 0 0 4px rgba(30,106,225,0.10);
+}
+.divider-ornament {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.06), transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

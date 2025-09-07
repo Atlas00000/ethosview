@@ -9,7 +9,7 @@ type RangeKey = "1d" | "1w" | "1m";
 
 export function MarketBar({ market }: { market: MarketLatestResponse }) {
   const m = market.market_data;
-  const [range, setRange] = useState<RangeKey>("1w");
+  const [range, setRange] = useState<RangeKey>("1m");
   const [history, setHistory] = useState<MarketHistoryResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -110,7 +110,8 @@ export function MarketBar({ market }: { market: MarketLatestResponse }) {
     const pad = (max - min) * padPct;
     return [min - pad, max + pad];
   }
-  const trim = (arr: Array<{ x: string; y: number }>, n = 30) => arr.slice(Math.max(0, arr.length - n));
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const trim = (arr: Array<{ x: string; y: number }>, n = isMobile ? 20 : 30) => arr.slice(Math.max(0, arr.length - n));
   const spBars = trim(seriesSP, 30);
   const ndqBars = trim(seriesNDQ, 30);
   const dowBars = trim(seriesDOW, 30);
@@ -157,7 +158,7 @@ export function MarketBar({ market }: { market: MarketLatestResponse }) {
           </div>
         </div>
 
-        <div className="mt-2 grid grid-cols-5 gap-4 items-center">
+        <div className="mt-2 grid grid-cols-5 gap-4 items-center desktop-only reveal-on-scroll">
           <div className="col-span-4 glass-card p-2 tilt-hover" style={{ width: "100%", height: 92 }}>
             <ResponsiveContainer>
               <BarChart data={spBars} margin={{ top: 2, bottom: 0, left: 0, right: 0 }}>
@@ -186,12 +187,35 @@ export function MarketBar({ market }: { market: MarketLatestResponse }) {
           </div>
         </div>
 
+        {/* Mobile compact cards */}
+        <div className="mobile-only mt-2 mobile-scroll-x snap-x-row">
+          {[{ label: 'S&P 500', delta: spDelta, color: '#1E6AE1', data: spBars, domain: spDomain },
+            { label: 'NASDAQ', delta: ndqDelta, color: '#2AB3A6', data: ndqBars, domain: ndqDomain },
+            { label: 'DOW', delta: dowDelta, color: '#9AD36A', data: dowBars, domain: dowDomain }].map((c) => (
+            <div key={c.label} className="glass-card card-compact snap-item" style={{ width: 240 }}>
+              <div className="text-xs" style={{ color: '#374151' }}>{c.label}</div>
+              <div style={{ width: '100%', height: 72 }}>
+                <ResponsiveContainer>
+                  <BarChart data={c.data} margin={{ top: 2, bottom: 0, left: 0, right: 0 }}>
+                    <XAxis dataKey="x" hide />
+                    <YAxis hide domain={c.domain as any} />
+                    <Bar dataKey="y" fill={c.color} radius={[3,3,0,0]} barSize={5} isAnimationActive />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-1 text-xs" style={{ color: c.delta.delta > 0 ? '#1D9A6C' : c.delta.delta < 0 ? '#E25555' : '#374151' }}>
+                {(c.delta.delta > 0 ? '▲' : c.delta.delta < 0 ? '▼' : '')} {c.delta.delta.toFixed(2)} ({c.delta.pct.toFixed(2)}%)
+              </div>
+            </div>
+          ))}
+        </div>
+
         {loading && (
           <div className="mt-2 hero-progress"><span /></div>
         )}
 
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="glass-card p-3 tilt-hover">
+          <div className="glass-card p-3 tilt-hover reveal-on-scroll">
             <div className="text-xs" style={{ color: "#374151" }}>NASDAQ trend</div>
             <div style={{ width: "100%", height: 72 }}>
               <ResponsiveContainer>
@@ -213,7 +237,7 @@ export function MarketBar({ market }: { market: MarketLatestResponse }) {
               {(ndqDelta.delta > 0 ? '▲' : ndqDelta.delta < 0 ? '▼' : '')} {ndqDelta.delta.toFixed(2)} ({ndqDelta.pct.toFixed(2)}%)
             </div>
           </div>
-          <div className="glass-card p-3 tilt-hover">
+          <div className="glass-card p-3 tilt-hover reveal-on-scroll">
             <div className="text-xs" style={{ color: "#374151" }}>DOW trend</div>
             <div style={{ width: "100%", height: 72 }}>
               <ResponsiveContainer>

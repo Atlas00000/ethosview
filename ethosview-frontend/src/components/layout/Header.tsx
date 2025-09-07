@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { api } from "../../services/api";
+import { api, API_BASE_URL } from "../../services/api";
 
 const nav = [
   { href: "#hero", label: "Home" },
@@ -18,7 +18,7 @@ export function Header() {
     let alive = true;
     // Fetch a couple of lightweight backend signals: health/live and alerts count
     Promise.all([
-      fetch(`${api.API_BASE_URL ?? ''}/health/live`).then((r) => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API_BASE_URL}/health/live`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       api.alerts(false).catch(() => ({ alerts: [], count: 0 } as any)),
     ]).then(([live, a]) => {
       if (!alive) return;

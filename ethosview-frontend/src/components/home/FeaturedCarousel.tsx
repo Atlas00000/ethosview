@@ -24,6 +24,7 @@ export function FeaturedCarousel({ top }: { top: PerformanceMetric[] }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [quickId, setQuickId] = useState<number | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const noFinRef = useRef<Set<number>>(new Set());
 
   // Lazy-load details as cards enter viewport (reduce burst, enable more items)
   useEffect(() => {
@@ -35,19 +36,19 @@ export function FeaturedCarousel({ top }: { top: PerformanceMetric[] }) {
         const idAttr = el.getAttribute('data-id');
         if (!idAttr) return;
         const id = Number(idAttr);
-        if (!id || details[id]) return;
+        if (!id || details[id] || noFinRef.current.has(id)) return;
         try {
-          const [p, e, s, hist] = await Promise.all([
-            api.latestPrice(id).catch(() => null),
-            api.latestESG(id).catch(() => null),
+          const [s, e, hist] = await Promise.all([
             api.companyFinancialSummary(id).catch(() => null),
+            api.latestESG(id).catch(() => null),
             api.stockPrices(id, 30).catch(() => null),
           ]);
           const sum = s as CompanyFinancialSummaryResponse | null;
+          if (!sum) { noFinRef.current.add(id); return; }
           setDetails((prev) => ({
             ...prev,
             [id]: {
-              price: (p as any)?.price?.close_price,
+              price: sum?.summary?.current_price,
               esg: (e as any)?.overall_score,
               pe: sum?.indicators?.pe_ratio,
               mcap: sum?.indicators?.market_cap,
@@ -55,7 +56,7 @@ export function FeaturedCarousel({ top }: { top: PerformanceMetric[] }) {
               prices: hist,
             },
           }));
-        } catch {}
+        } catch { noFinRef.current.add(id); }
       });
     }, { root: scrollerRef.current, rootMargin: '0px 200px', threshold: 0.2 });
     const root = scrollerRef.current;
@@ -140,8 +141,8 @@ export function FeaturedCarousel({ top }: { top: PerformanceMetric[] }) {
                 </div>
               </div>
               <div className="mt-2 flex items-center justify-between">
-                <div className={`text-xs font-medium ${changePct && changePct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {typeof changePct === 'number' ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : '—'}
+                <div className={`text-xs font-medium ${typeof changePct === 'number' ? (changePct >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-500'}`}>
+                  {typeof changePct === 'number' ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : 'No data'}
                 </div>
                 <button className="btn-primary btn-sheen px-3 py-1 rounded text-xs pulse-outline" onClick={() => setQuickId(it.company_id)}>Details</button>
               </div>

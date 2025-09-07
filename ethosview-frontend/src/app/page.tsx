@@ -1,10 +1,11 @@
 import type { DashboardResponse, AnalyticsSummaryResponse, MarketLatestResponse } from "../types/api";
+import dynamic from "next/dynamic";
 import { api } from "../services/api";
 import { HeroNew } from "../components/home/HeroNew";
 import { MarketBar } from "../components/home/MarketBar";
 import { FeaturedCarousel } from "../components/home/FeaturedCarousel";
-import { SectorHeatmap } from "../components/home/SectorHeatmap";
-import { BusinessPreview } from "../components/home/BusinessPreview";
+const SectorHeatmap = dynamic(() => import("../components/home/SectorHeatmap").then(m => m.SectorHeatmap), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
+const BusinessPreview = dynamic(() => import("../components/home/BusinessPreview").then(m => m.BusinessPreview), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
 import { SymbolLookup } from "../components/home/SymbolLookup";
 import { ESGHighlightsPro } from "../components/home/ESGHighlightsPro";
 import { MarketSparkline } from "../components/home/MarketSparkline";
@@ -13,10 +14,12 @@ import { PELeaders } from "../components/home/PELeaders";
 import { AlertsStrip } from "../components/home/AlertsStrip";
 import { WSStatus } from "../components/home/WSStatus";
 import { ESGTrendMini } from "../components/home/ESGTrendMini";
-import { AdvancedInsights } from "../components/home/AdvancedInsights";
-import { FinancialSnapshot } from "../components/home/FinancialSnapshot";
+const AdvancedInsights = dynamic(() => import("../components/home/AdvancedInsights").then(m => m.AdvancedInsights), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
+const FinancialSnapshot = dynamic(() => import("../components/home/FinancialSnapshot").then(m => m.FinancialSnapshot), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
 import { SectorPie } from "../components/home/SectorPie";
 import { ESGFeed } from "../components/home/ESGFeed";
+import { ScrollReveal } from "../components/home/ScrollReveal";
+import { QuickWidget } from "../components/home/QuickWidget";
 
 export const revalidate = 60;
 
@@ -60,10 +63,14 @@ export default async function HomePage() {
 
   return (
     <main>
-      <div id="hero">
+      <ScrollReveal>
+      <div id="hero" className="section-band band-a">
         <HeroNew dashboard={dashboard} analytics={analytics} market={market} history={history} />
       </div>
-      <div id="market">
+      <div id="market" className="section-band reveal-on-scroll">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="section-heading text-gradient"><span className="dot" /> Market</div>
+        </div>
         <MarketBar market={market} />
         <div className="max-w-6xl mx-auto px-4 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
           <div className="sm:col-span-2 glass-card p-3">
@@ -74,25 +81,49 @@ export default async function HomePage() {
           </div>
         </div>
       </div>
-      <div id="esg">
+      <div id="esg" className="section-band band-b reveal-on-scroll">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="section-heading text-gradient"><span className="dot" /> ESG</div>
+        </div>
         <ESGHighlightsPro analytics={analytics} />
         <CorrelationTeaser corr={corr} />
         <ESGTrendMini trends={esgTrends} />
       </div>
-      <div id="featured">
+      <div id="featured" className="section-band reveal-on-scroll">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="section-heading text-gradient"><span className="dot" /> Featured & P/E</div>
+        </div>
         <FeaturedCarousel top={analytics.top_market_cap.slice(0, 24)} />
         <PELeaders top={peTop} />
       </div>
-      <SymbolLookup />
-      <div id="sectors">
+      <div className="section-band band-b">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="section-heading text-gradient"><span className="dot" /> Symbol Lookup</div>
+        </div>
+        <SymbolLookup />
+      </div>
+      <div id="sectors" className="section-band reveal-on-scroll">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="section-heading text-gradient"><span className="dot" /> Sectors</div>
+        </div>
         <SectorHeatmap sectors={analytics.sector_comparisons} />
         <SectorPie sectors={analytics.sector_comparisons} />
       </div>
-      <BusinessPreview dashboard={dashboard} />
-      <AdvancedInsights summary={advSummary} />
-      <FinancialSnapshot ind={finInd} price={finPrice} summary={finSummary} series={priceSeries} />
-      <ESGFeed list={esgList} />
+      <div className="section-band band-b reveal-on-scroll">
+        <BusinessPreview dashboard={dashboard} />
+      </div>
+      <div className="section-band reveal-on-scroll">
+        <AdvancedInsights summary={advSummary} />
+      </div>
+      <div className="section-band band-b reveal-on-scroll">
+        <FinancialSnapshot ind={finInd} price={finPrice} summary={finSummary} series={priceSeries} />
+      </div>
+      <div className="section-band reveal-on-scroll">
+        <ESGFeed list={esgList} />
+      </div>
       <AlertsStrip alerts={alerts} />
+      <QuickWidget />
+      </ScrollReveal>
     </main>
   );
 }

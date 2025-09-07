@@ -3,6 +3,28 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://loca
 const memoryCache = new Map<string, { expiresAt: number; data: unknown }>();
 const backoffUntil = new Map<number, number>();
 const backoffUntilByKey = new Map<string, number>();
+const requestQueue: Array<() => void> = [];
+let activeRequests = 0;
+const MAX_CONCURRENCY = 4;
+
+async function acquireSlot() {
+  if (activeRequests < MAX_CONCURRENCY) {
+    activeRequests++;
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    requestQueue.push(() => {
+      activeRequests++;
+      resolve();
+    });
+  });
+}
+
+function releaseSlot() {
+  activeRequests = Math.max(0, activeRequests - 1);
+  const next = requestQueue.shift();
+  if (next) next();
+}
 const inflight = new Map<string, Promise<unknown>>();
 
 function nowMs() {
@@ -31,6 +53,14 @@ export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 15000
   }
 
   const fetchPromise = (async () => {
+    // Gentle jitter for low-priority endpoints to avoid synchronized bursts
+    const lowPriority = path.startsWith("/alerts") || path.startsWith("/api/v1/ws/status") || path.startsWith("/metrics") || path.startsWith("/api/v1/esg/scores");
+    if (lowPriority) {
+      const jitter = 50 + Math.floor(Math.random() * 100);
+      await sleep(jitter);
+    }
+
+    await acquireSlot();
     const maxAttempts = 3;
     let attempt = 0;
     let lastErr: unknown = null;
@@ -83,6 +113,7 @@ export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 15000
     throw lastErr ?? new Error("Request failed");
   })().finally(() => {
     inflight.delete(key);
+    releaseSlot();
   });
 
   inflight.set(key, fetchPromise);
@@ -112,3 +143,9 @@ export const api = {
   esgScores: (limit = 20, min = 0, offset = 0) => getJson(`/api/v1/esg/scores?limit=${limit}&min_score=${min}&offset=${offset}`, undefined, 10000),
   companyFinancialSummary: (companyId: number) => getJson(`/api/v1/financial/companies/${companyId}/summary`, undefined, 15000),
 };
+
+export function isUnderGlobalBackoff(): number {
+  const until = backoffUntil.get(429) || 0;
+  const now = nowMs();
+  return Math.max(0, until - now);
+}

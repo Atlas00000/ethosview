@@ -26,6 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"} />
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"} crossOrigin="anonymous" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased app-shell`}>
         <Header />
         {children}

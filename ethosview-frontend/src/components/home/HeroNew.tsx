@@ -118,11 +118,13 @@ export function HeroNew({ dashboard, analytics, market, history }: Props) {
 
   return (
     <section className="py-10 md:py-14 relative overflow-hidden" style={{ background: "linear-gradient(180deg, #F5F7FA 0%, #E6F7F2 100%)" }}>
+      <div className="ribbon ribbon-blue" style={{ top: 0, left: "-10%" }} />
+      <div className="ribbon ribbon-green" style={{ bottom: -20, left: "-5%", ['--rot' as any]: '5deg' }} />
       <div className="blob blob-drift-a" style={{ top: -60, left: -80, width: 220, height: 220, background: "rgba(30,106,225,0.18)", borderRadius: 9999 }} />
       <div className="blob blob-drift-b" style={{ top: -40, right: -60, width: 200, height: 200, background: "rgba(42,179,166,0.18)", borderRadius: 9999 }} />
       <div className="max-w-6xl mx-auto px-4 relative" ref={containerRef} tabIndex={0} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
         <h1 className="text-3xl md:text-5xl font-semibold tracking-tight text-gradient">EthosView</h1>
-        <p className="mt-3 text-base md:text-lg" style={{ color: "#374151" }}>ESG and financial insights, live from our Go backend.</p>
+        <p className="mt-3 text-base md:text-lg" style={{ color: "#374151" }}>Welcome to EthosView, your real time ESG and financial intelligence hub.</p>
 
         {ticker.length > 0 && (
           <div className="mt-4 flex gap-2 overflow-auto scrollbar-hide">
@@ -137,15 +139,15 @@ export function HeroNew({ dashboard, analytics, market, history }: Props) {
         <div className="relative mt-6 min-h-[240px]">
           <div className={`slide-base ${index === 0 ? "slide-active" : ""}`}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in-up">
-              <div className="glass-card p-4 hover-lift">
+              <div className="glass-card p-4 hover-lift spotlight-hover card-glow">
                 <div className="text-sm" style={{ color: "#6B7280" }}>Total Companies</div>
                 <div className="mt-1 text-2xl font-medium" style={{ color: "#0B2545", fontVariantNumeric: "tabular-nums" }}>{Math.round(totalCompanies).toLocaleString()}</div>
               </div>
-              <div className="glass-card p-4 hover-lift">
+              <div className="glass-card p-4 hover-lift spotlight-hover card-glow">
                 <div className="text-sm" style={{ color: "#6B7280" }}>Sectors</div>
                 <div className="mt-1 text-2xl font-medium" style={{ color: "#0B2545" }}>{Math.round(totalSectors)}</div>
               </div>
-              <div className="glass-card p-4 hover-lift">
+              <div className="glass-card p-4 hover-lift spotlight-hover card-glow">
                 <div className="text-sm" style={{ color: "#6B7280" }}>Avg ESG</div>
                 <div className="mt-1 text-2xl font-medium" style={{ color: "#1D9A6C" }}>{avgESG.toFixed(2)} / 100</div>
               </div>

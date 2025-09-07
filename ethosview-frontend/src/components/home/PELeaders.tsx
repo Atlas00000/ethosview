@@ -16,6 +16,7 @@ export function PELeaders({ top }: { top: TopPEResponse }) {
   }>>({});
   const [expanded, setExpanded] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const noFinRef = useRef<Set<number>>(new Set());
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch additional details for more context (no placeholders)
@@ -29,7 +30,7 @@ export function PELeaders({ top }: { top: TopPEResponse }) {
         const idAttr = el.getAttribute('data-id');
         if (!idAttr) return;
         const id = Number(idAttr);
-        if (!id || details[id]) return;
+        if (!id || details[id] || noFinRef.current.has(id)) return;
         try {
           const [fin, esg, company] = await Promise.all([
             api.companyFinancialSummary(id).catch(() => null),
@@ -39,11 +40,12 @@ export function PELeaders({ top }: { top: TopPEResponse }) {
           const f = fin as CompanyFinancialSummaryResponse | null;
           const e = esg as LatestESGResponse | null;
           const c = company as CompanyResponse | null;
+          if (!f) { noFinRef.current.add(id); return; }
           setDetails(prev => ({
             ...prev,
             [id]: { price: f?.summary?.current_price, changePct: f?.summary?.price_change_percent, mcap: f?.indicators?.market_cap, esg: e?.overall_score, symbol: c?.symbol },
           }));
-        } catch {}
+        } catch { noFinRef.current.add(id); }
       });
     }, { root: scrollerRef.current, rootMargin: '0px 200px', threshold: 0.2 });
     const root = scrollerRef.current;

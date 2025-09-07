@@ -14,6 +14,7 @@ export function ESGFeed({ list }: { list: ESGScoresListResponse }) {
   const [offset, setOffset] = React.useState((list?.pagination?.limit ?? 20));
   const [loading, setLoading] = React.useState(false);
   const [quickId, setQuickId] = React.useState<number | null>(null);
+  const listRef = React.useRef<HTMLDivElement | null>(null);
   if (!items.length) return null;
   const best = [...items].sort((a, b) => (b.overall_score ?? 0) - (a.overall_score ?? 0)).slice(0, 5);
   return (
@@ -22,7 +23,7 @@ export function ESGFeed({ list }: { list: ESGScoresListResponse }) {
         <h2 className="text-xl font-semibold text-gradient">Latest ESG scores</h2>
         <span className="text-xs" style={{ color: "#374151" }}>Showing {items.length} items</span>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div ref={listRef} className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="glass-card divide-y animate-fade-in-up lg:col-span-2">
           {items.map((s) => (
             <div key={s.id} className="p-3 flex items-center justify-between hover-lift tilt-hover">
@@ -62,8 +63,33 @@ export function ESGFeed({ list }: { list: ESGScoresListResponse }) {
             try {
               setLoading(true);
               const next = await (await import("../../services/api")).api.esgScores(20, 0, offset);
-              setItems((prev) => [...prev, ...(next?.scores || [])]);
+              const scores = next?.scores || [];
+              setItems((prev) => {
+                const seen = new Set(prev.map(x => x.id));
+                const merged = [...prev];
+                for (const s of scores) if (!seen.has(s.id)) merged.push(s);
+                return merged;
+              });
               setOffset((o) => o + (next?.pagination?.limit ?? 20));
+              // Prefetch next page when scrolled near bottom
+              requestIdleCallback(() => {
+                const el = listRef.current;
+                if (!el) return;
+                const { scrollHeight, clientHeight } = el;
+                if (scrollHeight <= clientHeight * 1.6) {
+                  (async () => {
+                    const more = await (await import("../../services/api")).api.esgScores(20, 0, offset + (next?.pagination?.limit ?? 20)).catch(() => null);
+                    if (!more?.scores?.length) return;
+                    setItems((prev) => {
+                      const seen2 = new Set(prev.map(x => x.id));
+                      const merged2 = [...prev];
+                      for (const s2 of more.scores) if (!seen2.has(s2.id)) merged2.push(s2);
+                      return merged2;
+                    });
+                    setOffset((o) => o + (more?.pagination?.limit ?? 20));
+                  })();
+                }
+              });
             } finally {
               setLoading(false);
             }
