@@ -1,11 +1,11 @@
 import type { DashboardResponse, AnalyticsSummaryResponse, MarketLatestResponse } from "../types/api";
-import dynamic from "next/dynamic";
+import NextDynamic from "next/dynamic";
 import { api } from "../services/api";
 import { HeroNew } from "../components/home/HeroNew";
 import { MarketBar } from "../components/home/MarketBar";
 import { FeaturedCarousel } from "../components/home/FeaturedCarousel";
-const SectorHeatmap = dynamic(() => import("../components/home/SectorHeatmap").then(m => m.SectorHeatmap), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
-const BusinessPreview = dynamic(() => import("../components/home/BusinessPreview").then(m => m.BusinessPreview), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
+const SectorHeatmap = NextDynamic(() => import("../components/home/SectorHeatmap").then(m => m.SectorHeatmap), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
+const BusinessPreview = NextDynamic(() => import("../components/home/BusinessPreview").then(m => m.BusinessPreview), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
 import { SymbolLookup } from "../components/home/SymbolLookup";
 import { ESGHighlightsPro } from "../components/home/ESGHighlightsPro";
 import { MarketSparkline } from "../components/home/MarketSparkline";
@@ -14,14 +14,15 @@ import { PELeaders } from "../components/home/PELeaders";
 import { AlertsStrip } from "../components/home/AlertsStrip";
 import { WSStatus } from "../components/home/WSStatus";
 import { ESGTrendMini } from "../components/home/ESGTrendMini";
-const AdvancedInsights = dynamic(() => import("../components/home/AdvancedInsights").then(m => m.AdvancedInsights), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
-const FinancialSnapshot = dynamic(() => import("../components/home/FinancialSnapshot").then(m => m.FinancialSnapshot), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
+const AdvancedInsights = NextDynamic(() => import("../components/home/AdvancedInsights").then(m => m.AdvancedInsights), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
+const FinancialSnapshot = NextDynamic(() => import("../components/home/FinancialSnapshot").then(m => m.FinancialSnapshot), { loading: () => <div className="max-w-6xl mx-auto px-4 py-8"><div className="glass-card p-6 skeleton h-40" /></div> });
 import { SectorPie } from "../components/home/SectorPie";
 import { ESGFeed } from "../components/home/ESGFeed";
 import { ScrollReveal } from "../components/home/ScrollReveal";
 import { QuickWidget } from "../components/home/QuickWidget";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function HomePage() {
   const today = new Date();

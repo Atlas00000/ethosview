@@ -1,4 +1,7 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const isServer = typeof window === "undefined";
+const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const INTERNAL_API_BASE_URL = process.env.INTERNAL_API_BASE_URL ?? PUBLIC_API_BASE_URL;
+export const API_BASE_URL = isServer ? INTERNAL_API_BASE_URL : PUBLIC_API_BASE_URL;
 
 const memoryCache = new Map<string, { expiresAt: number; data: unknown }>();
 const backoffUntil = new Map<number, number>();

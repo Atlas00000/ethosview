@@ -1,152 +1,140 @@
-# EthosView Backend
+## EthosView
 
-ESG/Financial Analytics Platform Backend API
+ESG/Financial analytics platform with a Go/Gin backend and a Next.js App Router frontend.
 
-## Quick Start
+### At a glance
+- **Backend**: Go 1.21, Gin, PostgreSQL, Redis, Docker
+- **Frontend**: Next.js 15 (App Router), pnpm, server-side data fetching
+- **Ports**: Frontend `3000`, Backend `8080`, Postgres `5432`, Redis `6379`
+- **Live health**: `GET /health/live`, `GET /api/v1/health`
 
-### Prerequisites
-- Go 1.21+
-- Docker & Docker Compose
-- Make (optional, for convenience)
+### Architecture
+```mermaid
+flowchart LR
+  subgraph Browser
+    UI[Next.js UI]
+  end
+  subgraph Frontend Container
+    FE[Next.js Server
+    (server-rendered)]
+  end
+  subgraph Backend Container
+    API[Go/Gin API]
+  end
+  subgraph Data Services
+    PG[(PostgreSQL)]
+    R[(Redis)]
+  end
 
-### Development Setup
-
-1. **Clone and setup**
-```bash
-# Install dependencies
-make deps
-
-# Or manually:
-go mod download
-go mod tidy
+  UI <--> FE
+  FE -- HTTP (server) --> API
+  UI -- HTTP (browser) --> API
+  API <--> PG
+  API <--> R
 ```
 
-2. **Start services with Docker**
+### Quick start (Docker)
+1) Start services
 ```bash
-# Start PostgreSQL and Redis
-make docker-up
-
-# Or manually:
-docker-compose up -d
+docker compose up -d
+```
+2) Open the app
+```
+http://localhost:3000
+```
+3) Verify API
+```bash
+curl http://localhost:8080/api/v1/dashboard
 ```
 
-3. **Run the backend**
-```bash
-# With hot reload (recommended for development)
-make dev
+### Environment configuration
+- Backend (container):
+  - `DB_HOST=postgres`, `DB_PORT=5432`, `DB_USER=postgres`, `DB_PASSWORD=password`, `DB_NAME=ethosview`
+  - `REDIS_HOST=redis`, `REDIS_PORT=6379`
+  - `PORT=8080`
+- Frontend:
+  - `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080` (browser → host mapped port)
+  - `INTERNAL_API_BASE_URL=http://backend:8080` (server-side in container → backend service)
 
-# Or run directly:
-make run
+These are set in `docker-compose.yml` for a zero-config local run.
+
+### Data seeding
+The repo includes SQL migrations and sample data:
+- `scripts/migrations/*.sql`
+- `scripts/seeds/*.sql`
+
+Seed using the running Postgres container (psql is available inside):
+```bash
+# Schema/migrations
+docker exec -i ethosview-postgres psql -U postgres -d ethosview -f /tmp/001_initial_schema.sql
+docker exec -i ethosview-postgres psql -U postgres -d ethosview -f /tmp/002_financial_data.sql
+docker exec -i ethosview-postgres psql -U postgres -d ethosview -f /tmp/003_performance_optimization.sql
+
+# Sample data
+docker exec -i ethosview-postgres psql -U postgres -d ethosview -f /tmp/sample_data.sql
+docker exec -i ethosview-postgres psql -U postgres -d ethosview -f /tmp/financial_data.sql
 ```
 
-4. **Test the API**
+Alternatively, run the helper script (Linux/macOS shells):
 ```bash
-# Health check
-curl http://localhost:8080/health
-
-# API health check
-curl http://localhost:8080/api/v1/health
+chmod +x scripts/migrate.sh
+./scripts/migrate.sh --seed
 ```
 
-### Environment Variables
-
-Copy the example environment file:
+### Development (local)
+- Backend
 ```bash
-cp .env.example .env
+make deps && make run   # or: make dev (hot reload with Air)
+```
+- Frontend
+```bash
+cd ethosview-frontend
+pnpm install
+pnpm dev
 ```
 
-Key environment variables:
-- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` - PostgreSQL connection
-- `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` - Redis connection
-- `PORT` - Server port (default: 8080)
+### Key API endpoints
+- Health: `GET /health`, `GET /health/live`, `GET /api/v1/health`
+- Dashboard: `GET /api/v1/dashboard`
+- Companies: `GET /api/v1/companies`, `GET /api/v1/companies/:id`, `GET /api/v1/companies/symbol/:symbol`
+- ESG: `GET /api/v1/esg/companies/:id/latest`, `GET /api/v1/esg/scores`
+- Financial: `GET /api/v1/financial/market`, `GET /api/v1/financial/companies/:id/summary`
 
-### Available Commands
+### Troubleshooting
+- **Frontend shows empty data**
+  - Ensure backend is healthy: `curl http://localhost:8080/health/live`
+  - Confirm env split: browser uses `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`, server-side uses `INTERNAL_API_BASE_URL=http://backend:8080`
+  - We use dynamic rendering on the homepage (`force-dynamic`) to avoid stale ISR in containers.
+- **Ports busy**
+  - Free port 3000/8080 or stop local dev servers, then `docker compose up -d`.
+- **Cache issues**
+  - Clear Redis: `docker exec -i ethosview-redis redis-cli FLUSHALL`
 
+### Make commands
 ```bash
 make help          # Show all available commands
 make build         # Build the application
 make run           # Run the application
-make dev           # Run with hot reload
+make dev           # Run with hot reload (Air)
 make test          # Run tests
 make docker-up     # Start all services
 make docker-down   # Stop all services
 make clean         # Clean build artifacts
 ```
 
-## API Endpoints
-
-### Health Checks
-- `GET /health` - Basic health check
-- `GET /api/v1/health` - API health check with database connectivity
-
-### Authentication
-- `POST /api/v1/auth/register` - Register a new user
-- `POST /api/v1/auth/login` - User login
-- `GET /api/v1/auth/profile` - Get user profile (requires authentication)
-- `PUT /api/v1/auth/profile` - Update user profile (requires authentication)
-
-### Dashboard
-- `GET /api/v1/dashboard` - Get ESG analytics dashboard overview
-
-### Companies
-- `GET /api/v1/companies` - List all companies (with pagination)
-- `GET /api/v1/companies/:id` - Get company by ID
-- `GET /api/v1/companies/symbol/:symbol` - Get company by symbol
-- `GET /api/v1/companies/sectors` - Get all unique sectors
-- `POST /api/v1/companies` - Create a new company
-- `PUT /api/v1/companies/:id` - Update a company
-- `DELETE /api/v1/companies/:id` - Delete a company
-
-### ESG Scores
-- `GET /api/v1/esg/scores` - List all ESG scores (with pagination and filtering)
-- `GET /api/v1/esg/scores/:id` - Get ESG score by ID
-- `GET /api/v1/esg/companies/:id/latest` - Get latest ESG score for a company
-- `GET /api/v1/esg/companies/:id/scores` - Get all ESG scores for a company
-- `POST /api/v1/esg/scores` - Create a new ESG score
-- `PUT /api/v1/esg/scores/:id` - Update an ESG score
-- `DELETE /api/v1/esg/scores/:id` - Delete an ESG score
-
-### Query Parameters
-- `limit` - Number of items per page (default: 20, max: 100)
-- `offset` - Number of items to skip (default: 0)
-- `sector` - Filter companies by sector
-- `min_score` - Filter ESG scores by minimum overall score
-
-### Authentication
-Protected endpoints require a JWT token in the Authorization header:
+### Project structure
 ```
-Authorization: Bearer <your-jwt-token>
+.
+├── cmd/server                     # Main application entry
+├── internal/                      # HTTP server, handlers, websocket
+├── pkg/                           # auth, cache, db, middleware, health, metrics
+├── ethosview-frontend/            # Next.js App Router frontend
+├── scripts/                       # migrations, seeds, test scripts
+├── docker-compose.yml             # Orchestration
+├── Dockerfile                     # Backend image
+└── README.md
 ```
 
-## Project Structure
-
-```
-ethosview-backend/
-├── cmd/
-│   └── server/           # Main application entry
-├── internal/
-│   └── server/           # HTTP server and routes
-├── pkg/
-│   └── database/         # Database connections
-├── Dockerfile            # Docker image
-├── docker-compose.yml    # Services orchestration
-├── Makefile              # Development commands
-└── .air.toml            # Hot reload configuration
-```
-
-## Development
-
-The backend uses:
-- **Gin** for HTTP routing
-- **PostgreSQL** for primary data storage
-- **Redis** for caching
-- **Docker** for containerization
-- **Air** for hot reload during development
-
-## Next Steps
-
-This is Week 3 of the EthosView development roadmap. Next phases will include:
-- Financial data APIs (Week 4)
-- Analytics and reporting (Week 5)
-- Real-time streaming (Week 7)
-- Frontend development (Week 10)
+### Notes
+- Keep it simple and in-scope; prefer pnpm on the frontend.
+- Frontend components fetch live data only; no mock data.

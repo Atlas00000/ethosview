@@ -1,0 +1,17 @@
+# VCS
+.git
+
+# Exclude frontend from backend build context
+ethosview-frontend/
+
+# Node-related (anywhere)
+**/node_modules/
+**/.next/
+**/.turbo/
+**/dist/
+**/build/
+**/.pnpm-store/
+
+# Logs and OS cruft
+**/*.log
+**/.DS_Store
