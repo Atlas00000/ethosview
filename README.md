@@ -16,28 +16,19 @@ ESG/Financial analytics platform with a Go/Gin backend and a Next.js App Router 
 - **pnpm**: efficient Node package management (front end)
 - **Docker Compose**: reproducible local orchestration of all services
 
-### Architecture
-```mermaid
-flowchart LR
-  subgraph Browser
-    UI["Next.js UI"]
-  end
-  subgraph Frontend Container
-    FE["Next.js Server (SSR)"]
-  end
-  subgraph Backend Container
-    API["Go/Gin API"]
-  end
-  subgraph Data Services
-    PG["PostgreSQL"]
-    R["Redis"]
-  end
-
-  UI <--> FE
-  FE -->|HTTP (server)| API
-  UI -->|HTTP (browser)| API
-  API <--> PG
-  API <--> R
+### Architecture (ASCII)
+```
+ [Browser]
+    |
+    |  HTTP (browser)
+    v
+ [Go/Gin API] <---- HTTP (server) ---- [Next.js Server (SSR) in Frontend container]
+    |   \
+    |    \__ metrics/health
+    |
+    +---- PostgreSQL (relational data)
+    |
+    +---- Redis (cache)
 ```
 
 ### Backend capabilities
@@ -169,14 +160,102 @@ make clean         # Clean build artifacts
 ### Project structure
 ```
 .
-├── cmd/server                     # Main application entry
-├── internal/                      # HTTP server, handlers, websocket
-├── pkg/                           # auth, cache, db, middleware, health, metrics
-├── ethosview-frontend/            # Next.js App Router frontend
-├── scripts/                       # migrations, seeds, test scripts
-├── docker-compose.yml             # Orchestration
-├── Dockerfile                     # Backend image
-└── README.md
+├── bin/
+│   └── ethosview-backend                - compiled backend binary (local builds)
+├── cmd/
+│   └── server/
+│       └── main.go                      - backend entrypoint
+├── internal/
+│   ├── handlers/                        - HTTP handlers (auth, company, esg, financial, analytics)
+│   │   ├── advanced_analytics.go
+│   │   ├── analytics.go
+│   │   ├── auth.go
+│   │   ├── company.go
+│   │   ├── dashboard.go
+│   │   ├── esg.go
+│   │   ├── financial.go
+│   │   └── websocket.go
+│   ├── models/                          - data models shared by handlers
+│   │   ├── advanced_analytics.go
+│   │   ├── analytics.go
+│   │   ├── company.go
+│   │   ├── esg_score.go
+│   │   ├── financial.go
+│   │   └── user.go
+│   ├── server/
+│   │   └── server.go                    - router, middleware, routes
+│   └── websocket/
+│       └── manager.go                   - WS manager
+├── pkg/                                 - reusable backend packages
+│   ├── auth/jwt.go
+│   ├── cache/{advanced.go,warming.go}
+│   ├── dashboard/business.go
+│   ├── database/{postgresql.go,redis.go}
+│   ├── errors/errors.go
+│   ├── health/health.go
+│   ├── metrics/metrics.go
+│   ├── middleware/{auth.go,cache.go,compression.go,monitoring.go,rate_limit.go,request_id.go,validation.go}
+│   ├── monitoring/alerts.go
+│   ├── pagination/cursor.go
+│   └── security/security.go
+├── ethosview-frontend/                  - Next.js (App Router) frontend
+│   ├── Dockerfile
+│   ├── next.config.ts
+│   ├── package.json
+│   ├── pnpm-lock.yaml
+│   └── src/
+│       ├── app/                         - App Router pages/layouts
+│       │   ├── layout.tsx
+│       │   ├── page.tsx                 - homepage (SSR, dynamic)
+│       │   ├── loading.tsx
+│       │   ├── not-found.tsx
+│       │   └── favicon.ico
+│       ├── components/
+│       │   ├── layout/{Header.tsx,Footer.tsx}
+│       │   ├── dashboard/{SectorBar.tsx,TopESGList.tsx}
+│       │   └── home/                     - homepage widgets (market, ESG, featured, etc.)
+│       │       ├── AdvancedInsights.tsx
+│       │       ├── AlertsStrip.tsx
+│       │       ├── BusinessPreview.tsx
+│       │       ├── CompanyQuickView.tsx
+│       │       ├── CorrelationTeaser.tsx
+│       │       ├── ESGFeed.tsx
+│       │       ├── ESGHighlights.tsx
+│       │       ├── ESGHighlightsPro.tsx
+│       │       ├── ESGTrendMini.tsx
+│       │       ├── FeaturedCarousel.tsx
+│       │       ├── FinancialSnapshot.tsx
+│       │       ├── HeroNew.tsx
+│       │       ├── MarketBar.tsx
+│       │       ├── MarketSparkline.tsx
+│       │       ├── PELeaders.tsx
+│       │       ├── QuickWidget.tsx
+│       │       ├── RiskTeaser.tsx
+│       │       ├── ScrollReveal.tsx
+│       │       ├── SectorHeatmap.tsx
+│       │       ├── SectorPie.tsx
+│       │       ├── SymbolLookup.tsx
+│       │       ├── useCountUp.ts
+│       │       └── WSStatus.tsx
+│       ├── services/api.ts              - API client with caching/backoff
+│       └── types/api.ts                 - shared types
+├── scripts/                             - migrations, seeds, utilities
+│   ├── migrations/{001_initial_schema.sql,002_financial_data.sql,003_performance_optimization.sql}
+│   ├── seeds/{sample_data.sql,financial_data.sql}
+│   ├── migrate.sh
+│   ├── performance_test.sh
+│   ├── phase2_test.sh
+│   └── phase3_test.sh
+├── Dockerfile                           - backend image
+├── docker-compose.yml                   - local orchestration (Postgres, Redis, backend, frontend)
+├── Makefile                             - dev commands
+├── ETHOSVIEW_ROADMAP.md
+├── FRONTEND_INTEGRATION.md
+├── UI_THEME_SPEC.md
+├── PERFORMANCE_OPTIMIZATIONS.md
+├── PAGE_PERFORMANCE_AND_OPTIMIZATION.md
+├── go.mod
+└── go.sum
 ```
 
 ### Notes
