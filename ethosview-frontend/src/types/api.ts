@@ -61,6 +61,9 @@ export type FinancialIndicatorsResponse = {
   } | null;
 };
 
+export type CompanyPricePoint = { id: number; date: string; close_price: number };
+export type CompanyPricesResponse = { company_id: number; prices: CompanyPricePoint[]; count: number };
+
 export type AdvancedSummaryResponse = {
   summary: {
     portfolio_optimization: unknown;
@@ -84,4 +87,25 @@ export type ESGScoresListResponse = {
   scores: ESGScoreItem[];
   pagination: { limit: number; offset: number; count: number };
   filters?: { min_score?: number };
+};
+
+// Additional types for richer Featured companies content
+export type CompanyFinancialSummaryResponse = {
+  company_id: number;
+  summary: {
+    current_price: number;
+    price_change: number;
+    price_change_percent: number;
+    volume: number;
+    date: string;
+  };
+  indicators: {
+    market_cap?: number;
+    pe_ratio?: number;
+    pb_ratio?: number;
+    debt_to_equity?: number;
+    return_on_equity?: number;
+    profit_margin?: number;
+    revenue_growth?: number;
+  } | null;
 };

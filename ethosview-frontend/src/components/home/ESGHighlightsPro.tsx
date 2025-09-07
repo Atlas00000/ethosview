@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { AnalyticsSummaryResponse, ESGTrendsResponse, LatestESGResponse, LatestPriceResponse } from "../../types/api";
+import type { AnalyticsSummaryResponse, ESGTrendsResponse, LatestESGResponse, LatestPriceResponse, CompanyResponse } from "../../types/api";
 import { api } from "../../services/api";
-import { ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
+import { ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, BarChart, Bar, ReferenceLine } from "recharts";
 import { useCountUp } from "./useCountUp";
 
 type Props = { analytics: AnalyticsSummaryResponse };
@@ -13,6 +13,7 @@ export function ESGHighlightsPro({ analytics }: Props) {
   const [trends, setTrends] = useState<ESGTrendsResponse | null>(null);
   const [latest, setLatest] = useState<LatestESGResponse | null>(null);
   const [price, setPrice] = useState<LatestPriceResponse | null>(null);
+  const [company, setCompany] = useState<CompanyResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [days, setDays] = useState<number>(60);
   const [activeSlice, setActiveSlice] = useState<number | null>(null);
@@ -29,11 +30,13 @@ export function ESGHighlightsPro({ analytics }: Props) {
       api.esgTrends(selectedId, days),
       api.latestESG(selectedId),
       api.latestPrice(selectedId),
+      api.companyById(selectedId),
     ])
-      .then(([t, l, p]) => {
+      .then(([t, l, p, c]) => {
         setTrends(t);
         setLatest(l);
         setPrice(p);
+        setCompany(c as CompanyResponse);
       })
       .finally(() => setLoading(false));
   }, [selectedId, days]);
@@ -59,6 +62,7 @@ export function ESGHighlightsPro({ analytics }: Props) {
   }, [trends]);
 
   const latestPoint = chartData.length ? chartData[chartData.length - 1] : null;
+  const prevPoint = chartData.length > 1 ? chartData[chartData.length - 2] : null;
   const pieData = latestPoint
     ? [
         { name: "E", value: latestPoint.e },
@@ -67,6 +71,8 @@ export function ESGHighlightsPro({ analytics }: Props) {
       ]
     : [];
   const overallValue = typeof latest?.overall_score === 'number' ? latest.overall_score : (latestPoint ? latestPoint.y : undefined);
+  const overallDelta = latestPoint && prevPoint ? latestPoint.y - prevPoint.y : 0;
+  const overallDeltaPct = latestPoint && prevPoint && prevPoint.y ? ((latestPoint.y - prevPoint.y) / prevPoint.y) * 100 : 0;
   const barData = latestPoint && typeof overallValue === 'number'
     ? [
         { name: "E", score: latestPoint.e },
@@ -80,6 +86,13 @@ export function ESGHighlightsPro({ analytics }: Props) {
   const countS = useCountUp(typeof latestPoint?.s === 'number' ? latestPoint!.s : 0);
   const countG = useCountUp(typeof latestPoint?.g === 'number' ? latestPoint!.g : 0);
   const countESG = useCountUp(typeof overallValue === 'number' ? overallValue : 0);
+
+  // Sector average comparison for overall ESG (when company sector available)
+  const sectorAvg = useMemo(() => {
+    if (!company?.sector) return null as number | null;
+    const row = analytics.sector_comparisons.find(s => s.sector === company.sector);
+    return row ? row.avg_esg_score : null;
+  }, [company?.sector, analytics.sector_comparisons]);
 
   return (
     <section className="max-w-6xl mx-auto px-4 py-12 relative overflow-hidden"
@@ -110,7 +123,12 @@ export function ESGHighlightsPro({ analytics }: Props) {
             </div>
             <div className="text-right">
               <div className="text-xs" style={{ color: "#374151" }}>Latest ESG</div>
-              <div className="text-lg font-semibold" style={{ color: "#1D9A6C" }}>{formatNumber(latest?.overall_score, 2)} / 100</div>
+              <div className="text-lg font-semibold" style={{ color: "#1D9A6C" }}>{formatNumber(latest?.overall_score ?? latestPoint?.y, 2)} / 100</div>
+              {latestPoint && (
+                <div className="text-xs" style={{ color: overallDelta >= 0 ? '#1D9A6C' : '#E25555' }}>
+                  {(overallDelta >= 0 ? '▲ +' : '▼ ') + formatNumber(overallDelta, 2)} ({formatNumber(overallDeltaPct, 2)}%)
+                </div>
+              )}
             </div>
             <div className="text-right">
               <div className="text-xs" style={{ color: "#374151" }}>Price</div>
@@ -168,6 +186,11 @@ export function ESGHighlightsPro({ analytics }: Props) {
                   <div className="skeleton w-full h-full rounded" />
                 )}
               </div>
+              <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: '#374151' }}>
+                <span className="px-2 py-0.5 rounded-full bg-white/50">E = Environmental</span>
+                <span className="px-2 py-0.5 rounded-full bg-white/50">S = Social</span>
+                <span className="px-2 py-0.5 rounded-full bg-white/50">G = Governance</span>
+              </div>
             </div>
             <div className="glass-card p-3 tilt-hover">
               <div className="text-xs mb-1" style={{ color: "#374151" }}>Components vs overall (score)</div>
@@ -178,7 +201,8 @@ export function ESGHighlightsPro({ analytics }: Props) {
                       <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                       <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
                       <Tooltip formatter={(v: any, n: any) => [formatNumber(v, 2), n]} />
-                      <Bar dataKey="score" radius={[6, 6, 0, 0]} fill="#0B2545" className="hover-lift" />
+                      {sectorAvg != null && <ReferenceLine y={sectorAvg} stroke="#1D9A6C" strokeDasharray="4 4" label={{ value: 'Sector Avg', position: 'insideTopRight', fill: '#1D9A6C', fontSize: 10 }} />}
+                      <Bar dataKey="score" radius={[6, 6, 0, 0]} fill="#0B2545" className="hover-lift" isAnimationActive />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

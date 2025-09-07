@@ -1,28 +1,78 @@
 "use client";
 import React from "react";
 import type { ESGScoresListResponse } from "../../types/api";
+import { CompanyQuickView } from "./CompanyQuickView";
 import { useCountUp } from "./useCountUp";
 
+function CountUpValue({ value }: { value: number }) {
+  const count = useCountUp(typeof value === 'number' ? value : 0);
+  return <>{Number.isFinite(count as any) ? (count as number).toFixed(2) : '—'}</>;
+}
+
 export function ESGFeed({ list }: { list: ESGScoresListResponse }) {
-  const items = list?.scores || [];
+  const [items, setItems] = React.useState(list?.scores || []);
+  const [offset, setOffset] = React.useState((list?.pagination?.limit ?? 20));
+  const [loading, setLoading] = React.useState(false);
+  const [quickId, setQuickId] = React.useState<number | null>(null);
   if (!items.length) return null;
+  const best = [...items].sort((a, b) => (b.overall_score ?? 0) - (a.overall_score ?? 0)).slice(0, 5);
   return (
     <section className="max-w-6xl mx-auto px-4 py-8">
-      <h2 className="text-xl font-semibold mb-3 text-gradient">Latest ESG scores</h2>
-      <div className="glass-card divide-y animate-fade-in-up">
-        {items.map((s) => {
-          const count = useCountUp(typeof s.overall_score === 'number' ? s.overall_score : 0);
-          return (
-            <div key={s.id} className="p-3 flex items-center justify-between hover-lift">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xl font-semibold text-gradient">Latest ESG scores</h2>
+        <span className="text-xs" style={{ color: "#374151" }}>Showing {items.length} items</span>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="glass-card divide-y animate-fade-in-up lg:col-span-2">
+          {items.map((s) => (
+            <div key={s.id} className="p-3 flex items-center justify-between hover-lift tilt-hover">
               <div className="truncate pr-3">
                 <div className="text-sm font-medium" style={{ color: "#0B2545" }}>{s.company_name || s.company_id}</div>
-                <div className="text-xs" style={{ color: "#374151" }}>{new Date(s.score_date).toISOString().slice(0,10)}</div>
+                <div className="text-xs" style={{ color: "#374151" }}>{new Date(s.score_date).toISOString().slice(0,10)} {s.company_symbol ? `• ${s.company_symbol}` : ''}</div>
               </div>
-              <div className="text-sm font-semibold" style={{ color: "#1D9A6C" }}>{Number.isFinite(count as any) ? (count as number).toFixed(2) : '—'}</div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-semibold" style={{ color: "#1D9A6C" }}><CountUpValue value={typeof s.overall_score === 'number' ? s.overall_score : 0} /></div>
+                <button className="glass-card px-2 py-1 btn-sheen text-xs" onClick={() => setQuickId(s.company_id)}>View</button>
+              </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+        <div className="glass-card p-3 animate-fade-in-up">
+          <div className="text-sm font-medium mb-2" style={{ color: "#0B2545" }}>Top latest</div>
+          <div className="space-y-2">
+            {best.map((s) => (
+              <div key={`best-${s.id}`} className="glass-card p-2 hover-lift">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="truncate pr-2" style={{ color: "#0B2545" }}>{s.company_name || s.company_id}</div>
+                  <div className="font-semibold" style={{ color: "#1D9A6C" }}>{(s.overall_score ?? 0).toFixed(2)}</div>
+                </div>
+                <div className="mt-1 h-1.5 bg-white/30 rounded">
+                  <div className="h-1.5 rounded" style={{ width: `${Math.max(0, Math.min(100, s.overall_score ?? 0))}%`, background: '#1D9A6C', transition: 'width 320ms var(--ease-enter)' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+      <div className="mt-4 flex justify-center">
+        <button
+          disabled={loading}
+          className="btn-primary btn-sheen px-4 py-2 rounded hover-lift"
+          onClick={async () => {
+            try {
+              setLoading(true);
+              const next = await (await import("../../services/api")).api.esgScores(20, 0, offset);
+              setItems((prev) => [...prev, ...(next?.scores || [])]);
+              setOffset((o) => o + (next?.pagination?.limit ?? 20));
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          {loading ? "Loading…" : "Load more"}
+        </button>
+      </div>
+      {quickId !== null && <CompanyQuickView companyId={quickId} onClose={() => setQuickId(null)} />}
     </section>
   );
 }

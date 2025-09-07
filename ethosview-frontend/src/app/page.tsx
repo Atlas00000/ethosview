@@ -1,6 +1,6 @@
 import type { DashboardResponse, AnalyticsSummaryResponse, MarketLatestResponse } from "../types/api";
 import { api } from "../services/api";
-import { HeroSlider } from "../components/home/HeroSlider";
+import { HeroNew } from "../components/home/HeroNew";
 import { MarketBar } from "../components/home/MarketBar";
 import { FeaturedCarousel } from "../components/home/FeaturedCarousel";
 import { SectorHeatmap } from "../components/home/SectorHeatmap";
@@ -16,7 +16,6 @@ import { ESGTrendMini } from "../components/home/ESGTrendMini";
 import { AdvancedInsights } from "../components/home/AdvancedInsights";
 import { FinancialSnapshot } from "../components/home/FinancialSnapshot";
 import { SectorPie } from "../components/home/SectorPie";
-import { RiskTeaser } from "../components/home/RiskTeaser";
 import { ESGFeed } from "../components/home/ESGFeed";
 
 export const revalidate = 60;
@@ -25,7 +24,7 @@ export default async function HomePage() {
   const today = new Date();
   const start = new Date(today.getTime() - 7 * 24 * 3600 * 1000);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  const [dashboard, analytics, market, history, corr, peTop, alerts, ws, esgTrends, advSummary, finInd, finPrice, risk, esgList]: [
+  const [dashboard, analytics, market, history, corr, peTop, alerts, ws, esgTrends, advSummary, finInd, finPrice, esgList, finSummary, priceSeries]: [
     DashboardResponse,
     AnalyticsSummaryResponse,
     MarketLatestResponse,
@@ -38,28 +37,31 @@ export default async function HomePage() {
     any,
     any,
     any,
+    any,
     any
   ] = await Promise.all([
-    api.dashboard(),
-    api.analyticsSummary(),
-    api.marketLatest(),
-    api.marketHistory(fmt(start), fmt(today), 30),
-    api.correlation(),
-    api.topPERatio(10),
-    api.alerts(false),
-    api.wsStatus(),
-    api.esgTrends(1, 30),
-    api.advancedSummary(),
-    api.financialIndicators(1),
-    api.latestPrice(1),
-    api.riskAssessment(1),
-    api.esgScores(10, 0),
+    api.dashboard().catch(() => ({ summary: { total_companies: 0, total_sectors: 0, avg_esg_score: 0 }, top_esg_scores: [], sectors: [], sector_stats: {} } as DashboardResponse)),
+    api.analyticsSummary().catch(() => ({ summary: { total_companies: 0, total_sectors: 0, avg_esg_score: 0 }, sector_comparisons: [], top_esg_performers: [], top_market_cap: [], correlation: {} } as AnalyticsSummaryResponse)),
+    api.marketLatest().catch(() => ({ market_data: { date: fmt(today) } } as MarketLatestResponse)),
+    api.marketHistory(fmt(start), fmt(today), 30).catch(() => ({ start_date: fmt(start), end_date: fmt(today), data: [], count: 0 })),
+    api.correlation().catch(() => ({ sample_size: 0, avg_esg_score: 0, avg_market_cap: 0, avg_pe_ratio: 0, avg_roe: 0, avg_profit_margin: 0, esg_market_cap_corr: 0, esg_pe_corr: 0, esg_roe_corr: 0, esg_profit_corr: 0 })),
+    api.topPERatio(24).catch(() => ({ metric: "pe_ratio", top_performers: [], count: 0, limit: 24 })),
+    // Soft-fail on lower-priority endpoints to avoid 429 breaking the page
+    api.alerts(false).catch(() => ({ alerts: [], count: 0, active_only: true })),
+    api.wsStatus().catch(() => ({ status: "degraded" })),
+    api.esgTrends(1, 30).catch(() => ({ company_id: 1, trends: [], count: 0, days: 30 })),
+    api.advancedSummary().catch(() => ({ summary: { portfolio_optimization: null, risk_summary: { total_companies_assessed: 0, average_risk_score: 0, risk_distribution: { low: 0, medium: 0, high: 0 } }, trend_summary: { esg_trends: { improving: 0, declining: 0, stable: 0 }, price_trends: { up: 0, down: 0, stable: 0 } }, message: "" } })),
+    api.financialIndicators(1).catch(() => ({ company_id: 1, indicators: null })),
+    api.latestPrice(1).catch(() => ({ company_id: 1, price: null })),
+    api.esgScores(20, 0, 0).catch(() => ({ scores: [], pagination: { limit: 20, offset: 0, count: 0 }, filters: { min_score: 0 } })),
+    api.companyFinancialSummary(1).catch(() => null),
+    api.stockPrices(1, 30).catch(() => null),
   ]);
 
   return (
     <main>
       <div id="hero">
-        <HeroSlider dashboard={dashboard} analytics={analytics} market={market} history={history} esgTrends={esgTrends} />
+        <HeroNew dashboard={dashboard} analytics={analytics} market={market} history={history} />
       </div>
       <div id="market">
         <MarketBar market={market} />
@@ -78,7 +80,7 @@ export default async function HomePage() {
         <ESGTrendMini trends={esgTrends} />
       </div>
       <div id="featured">
-        <FeaturedCarousel top={analytics.top_market_cap.slice(0, 10)} />
+        <FeaturedCarousel top={analytics.top_market_cap.slice(0, 24)} />
         <PELeaders top={peTop} />
       </div>
       <SymbolLookup />
@@ -88,8 +90,7 @@ export default async function HomePage() {
       </div>
       <BusinessPreview dashboard={dashboard} />
       <AdvancedInsights summary={advSummary} />
-      <FinancialSnapshot ind={finInd} price={finPrice} />
-      <RiskTeaser risk={risk} />
+      <FinancialSnapshot ind={finInd} price={finPrice} summary={finSummary} series={priceSeries} />
       <ESGFeed list={esgList} />
       <AlertsStrip alerts={alerts} />
     </main>

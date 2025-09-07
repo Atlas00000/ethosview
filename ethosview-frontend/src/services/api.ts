@@ -2,19 +2,25 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://loca
 
 const memoryCache = new Map<string, { expiresAt: number; data: unknown }>();
 const backoffUntil = new Map<number, number>();
+const backoffUntilByKey = new Map<string, number>();
 const inflight = new Map<string, Promise<unknown>>();
 
 function nowMs() {
   return Date.now();
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 15000): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const key = url;
   const backoff = backoffUntil.get(429) || 0;
-  if (backoff > nowMs()) {
+  const pathBackoff = backoffUntilByKey.get(key) || 0;
+  if (backoff > nowMs() || pathBackoff > nowMs()) {
     const cached = memoryCache.get(key);
-    if (cached && cached.expiresAt > nowMs()) return cached.data as T;
+    if (cached) return cached.data as T; // serve stale during backoff
   }
   const cached = memoryCache.get(key);
   if (cached && cached.expiresAt > nowMs()) {
@@ -24,31 +30,58 @@ export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 15000
     return (await inflight.get(key)) as T;
   }
 
-  const fetchPromise = fetch(url, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init?.headers || {}),
-    },
-  }).then(async (res) => {
-    if (!res.ok) {
+  const fetchPromise = (async () => {
+    const maxAttempts = 3;
+    let attempt = 0;
+    let lastErr: unknown = null;
+    while (attempt < maxAttempts) {
+      attempt++;
+      const res = await fetch(url, {
+        ...init,
+        headers: {
+          Accept: "application/json",
+          ...(init?.headers || {}),
+        },
+      });
+      if (res.ok) {
+        const json = (await res.json()) as T;
+        if (ttlMs > 0) memoryCache.set(key, { data: json, expiresAt: nowMs() + ttlMs });
+        return json;
+      }
+
+      // Build error text for diagnostics
       let text = "";
       try {
         text = await res.text();
       } catch {}
+
       if (res.status === 429) {
-        backoffUntil.set(429, nowMs() + 60_000);
+        // Global and per-path backoff with jitter; prefer serving stale
+        const retryAfter = Number(res.headers.get("Retry-After") || "") || 0;
+        const base = retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 900;
+        const jitter = 200 + Math.floor(Math.random() * 400);
+        const delayMs = Math.max(base, 900) + jitter;
+        const until = nowMs() + delayMs;
+        backoffUntil.set(429, until);
+        backoffUntilByKey.set(key, until);
         const anyCache = memoryCache.get(key);
         if (anyCache) {
-          return anyCache.data as T; // serve stale on 429
+          return anyCache.data as T; // serve stale immediately on 429
+        }
+        if (attempt < maxAttempts) {
+          await sleep(delayMs);
+          continue;
         }
       }
-      throw new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`);
+
+      lastErr = new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`);
+      break;
     }
-    const json = (await res.json()) as T;
-    if (ttlMs > 0) memoryCache.set(key, { data: json, expiresAt: nowMs() + ttlMs });
-    return json;
-  }).finally(() => {
+    // As a last resort, if we have any stale cache, serve it instead of throwing
+    const stale = memoryCache.get(key);
+    if (stale) return stale.data as T;
+    throw lastErr ?? new Error("Request failed");
+  })().finally(() => {
     inflight.delete(key);
   });
 
@@ -58,12 +91,14 @@ export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 15000
 
 export const api = {
   dashboard: () => getJson("/api/v1/dashboard"),
-  analyticsSummary: () => getJson("/api/v1/analytics/summary", undefined, 30000),
+  analyticsSummary: () => getJson("/api/v1/analytics/summary", undefined, 120000),
   marketLatest: () => getJson("/api/v1/financial/market", undefined, 15000),
   latestPrice: (companyId: number) => getJson(`/api/v1/financial/companies/${companyId}/price/latest`),
+  stockPrices: (companyId: number, limit = 30) => getJson(`/api/v1/financial/companies/${companyId}/prices?limit=${limit}`, undefined, 20000),
   latestESG: (companyId: number) => getJson(`/api/v1/esg/companies/${companyId}/latest`),
   companyBySymbol: (symbol: string) => getJson(`/api/v1/companies/symbol/${encodeURIComponent(symbol)}`),
-  sectorComparisons: () => getJson("/api/v1/analytics/sectors/comparisons", undefined, 60000),
+  companyById: (companyId: number) => getJson(`/api/v1/companies/${companyId}`),
+  sectorComparisons: () => getJson("/api/v1/analytics/sectors/comparisons", undefined, 180000),
   marketHistory: (start: string, end: string, limit = 30) =>
     getJson(`/api/v1/financial/market/history?start_date=${start}&end_date=${end}&limit=${limit}`, undefined, 30000),
   correlation: () => getJson("/api/v1/analytics/correlation/esg-financial", undefined, 60000),
@@ -74,5 +109,6 @@ export const api = {
   financialIndicators: (companyId: number) => getJson(`/api/v1/financial/companies/${companyId}/indicators`, undefined, 30000),
   advancedSummary: () => getJson(`/api/v1/advanced/summary`, undefined, 60000),
   riskAssessment: (companyId: number) => getJson(`/api/v1/advanced/companies/${companyId}/risk-assessment`, undefined, 60000),
-  esgScores: (limit = 10, min = 0) => getJson(`/api/v1/esg/scores?limit=${limit}&min_score=${min}`, undefined, 10000),
+  esgScores: (limit = 20, min = 0, offset = 0) => getJson(`/api/v1/esg/scores?limit=${limit}&min_score=${min}&offset=${offset}`, undefined, 10000),
+  companyFinancialSummary: (companyId: number) => getJson(`/api/v1/financial/companies/${companyId}/summary`, undefined, 15000),
 };

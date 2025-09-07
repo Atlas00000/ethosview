@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import type { CorrelationResponse } from "../../types/api";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 import { useCountUp } from "./useCountUp";
 
 function formatValue(v: unknown): string {
@@ -79,7 +79,7 @@ export function CorrelationTeaser({ corr }: { corr: CorrelationResponse | Record
                 <Tooltip formatter={(v: any, n: any, p: any) => [formatValue(v), `${p.payload?.name}`]} />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]} className="hover-lift">
                   {bars.map((b, idx) => (
-                    <cell key={`c-${idx}`} fill={signColor(b.raw)} />
+                    <Cell key={`c-${idx}`} fill={signColor(b.raw)} />
                   ))}
                 </Bar>
               </BarChart>
