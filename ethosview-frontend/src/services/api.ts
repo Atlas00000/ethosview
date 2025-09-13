@@ -10,7 +10,7 @@ const backoffUntil = new Map<number, number>();
 const backoffUntilByKey = new Map<string, number>();
 const requestQueue: Array<() => void> = [];
 let activeRequests = 0;
-const MAX_CONCURRENCY = 4;
+const MAX_CONCURRENCY = 2;
 
 async function acquireSlot() {
   if (activeRequests < MAX_CONCURRENCY) {
@@ -40,7 +40,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 15000): Promise<T> {
+export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 30000): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const key = url;
   const backoff = backoffUntil.get(429) || 0;
@@ -58,12 +58,9 @@ export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 15000
   }
 
   const fetchPromise = (async () => {
-    // Gentle jitter for low-priority endpoints to avoid synchronized bursts
-    const lowPriority = path.startsWith("/alerts") || path.startsWith("/api/v1/ws/status") || path.startsWith("/metrics") || path.startsWith("/api/v1/esg/scores");
-    if (lowPriority) {
-      const jitter = 50 + Math.floor(Math.random() * 100);
-      await sleep(jitter);
-    }
+    // Gentle jitter for all endpoints to avoid rate limiting
+    const jitter = 100 + Math.floor(Math.random() * 200);
+    await sleep(jitter);
 
     await acquireSlot();
     const maxAttempts = 3;

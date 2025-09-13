@@ -33,11 +33,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://ethosview-production.up.railway.app/api/$1"
-    }
   ]
 }

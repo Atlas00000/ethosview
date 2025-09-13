@@ -19,10 +19,25 @@ export function MarketBar({ market }: { market: MarketLatestResponse }) {
     const start = new Date(today.getTime() - days * 24 * 3600 * 1000);
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
     setLoading(true);
-    api
-      .marketHistory(fmt(start), fmt(today), 100)
-      .then((res) => setHistory(res))
-      .finally(() => setLoading(false));
+    
+    // Add delay to avoid rate limiting
+    setTimeout(() => {
+      api
+        .marketHistory(fmt(start), fmt(today), 100)
+        .then((res) => {
+          if (res && Array.isArray(res.data)) {
+            setHistory(res);
+          } else {
+            console.warn('Market history data is invalid:', res);
+            setHistory(null);
+          }
+        })
+        .catch((error) => {
+          console.warn('Failed to load market history:', error);
+          setHistory(null);
+        })
+        .finally(() => setLoading(false));
+    }, Math.random() * 1000); // Random delay up to 1 second
   }, [range]);
 
   const seriesSP = useMemo(() => {
