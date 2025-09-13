@@ -10,7 +10,7 @@ const backoffUntil = new Map<number, number>();
 const backoffUntilByKey = new Map<string, number>();
 const requestQueue: Array<() => void> = [];
 let activeRequests = 0;
-const MAX_CONCURRENCY = 2;
+const MAX_CONCURRENCY = 1;
 
 async function acquireSlot() {
   if (activeRequests < MAX_CONCURRENCY) {
@@ -58,8 +58,8 @@ export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 30000
   }
 
   const fetchPromise = (async () => {
-    // Gentle jitter for all endpoints to avoid rate limiting
-    const jitter = 100 + Math.floor(Math.random() * 200);
+    // More aggressive jitter for all endpoints to avoid rate limiting
+    const jitter = 500 + Math.floor(Math.random() * 1000); // 0.5-1.5 seconds
     await sleep(jitter);
 
     await acquireSlot();
