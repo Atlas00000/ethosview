@@ -10,7 +10,28 @@ import (
 
 // InitPostgreSQL initializes and returns a PostgreSQL database connection
 func InitPostgreSQL() (*sql.DB, error) {
-	// Get database connection details from environment variables
+	// Check for Railway DATABASE_URL first (recommended for Railway)
+	databaseURL := getEnv("DATABASE_URL", "")
+	if databaseURL != "" {
+		// Use Railway's DATABASE_URL
+		db, err := sql.Open("postgres", databaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open database with DATABASE_URL: %w", err)
+		}
+
+		// Test the connection
+		if err := db.Ping(); err != nil {
+			return nil, fmt.Errorf("failed to ping database: %w", err)
+		}
+
+		// Set connection pool settings
+		db.SetMaxOpenConns(25)
+		db.SetMaxIdleConns(5)
+
+		return db, nil
+	}
+
+	// Fallback to individual environment variables (for local development or other platforms)
 	host := getEnv("DB_HOST", "localhost")
 	port := getEnv("DB_PORT", "5432")
 	user := getEnv("DB_USER", "postgres")
