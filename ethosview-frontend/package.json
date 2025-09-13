@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "test": "echo 'Tests not configured yet'"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "echo 'Tests not configured yet'",
+    "type-check": "tsc --noEmit",
+    "vercel-build": "pnpm build"
   },
   "dependencies": {
     "next": "15.5.2",

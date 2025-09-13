@@ -1,0 +1,91 @@
+# Production Docker Compose for EthosView Backend
+# Use this for deploying the backend to production servers (Railway, Render, etc.)
+
+services:
+  # Redis Cache (can be replaced with external Redis service like Upstash)
+  redis:
+    image: redis:7-alpine
+    container_name: ethosview-redis-prod
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ethosview-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # For production, consider using external Redis service
+    # command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+
+  # Go Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - GO_VERSION=1.21
+    container_name: ethosview-backend-prod
+    restart: unless-stopped
+    environment:
+      # Supabase Database Configuration
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_SSL_MODE=${DB_SSL_MODE}
+      # Redis Configuration
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      # Application Configuration
+      - PORT=${PORT:-8080}
+      - ENVIRONMENT=production
+      # Supabase Configuration
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      # Security
+      - JWT_SECRET=${JWT_SECRET}
+      # Optional: Rate limiting
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=60
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ethosview-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:${PORT:-8080}/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  ethosview-network:
+    driver: bridge
