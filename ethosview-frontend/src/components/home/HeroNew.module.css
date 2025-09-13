@@ -1,0 +1,141 @@
+/* HeroNew component styles */
+.heroSection {
+  background: linear-gradient(180deg, #F5F7FA 0%, #E6F7F2 100%);
+}
+
+.ribbonBlue {
+  top: 0;
+  left: -10%;
+}
+
+.ribbonGreen {
+  bottom: -20px;
+  left: -5%;
+  --rot: 5deg;
+}
+
+.blobDriftA {
+  top: -60px;
+  left: -80px;
+  width: 220px;
+  height: 220px;
+  background: rgba(30, 106, 225, 0.18);
+  border-radius: 9999px;
+}
+
+.blobDriftB {
+  top: -40px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  background: rgba(42, 179, 166, 0.18);
+  border-radius: 9999px;
+}
+
+.heroTitle {
+  color: #374151;
+}
+
+.tickerItem {
+  color: #0B2545;
+}
+
+.kpiLabel {
+  color: #6B7280;
+}
+
+.kpiValue {
+  color: #0B2545;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiValueEsg {
+  color: #1D9A6C;
+}
+
+.sectorLabel {
+  color: #374151;
+}
+
+.sectorValue {
+  color: #0B2545;
+}
+
+.sectorEsgValue {
+  color: #0B2545;
+}
+
+.sectorCompanyCount {
+  color: #6B7280;
+}
+
+.topCapLabel {
+  color: #374151;
+}
+
+.topCapValue {
+  color: #0B2545;
+}
+
+.chartLabel {
+  color: #374151;
+}
+
+.pieLabel {
+  color: #374151;
+}
+
+.pieValue {
+  color: #0B2545;
+}
+
+.radialLabel {
+  color: #374151;
+}
+
+.radialValue {
+  color: #0B2545;
+}
+
+.slideIndicator {
+  width: 8px;
+  height: 8px;
+  background: #1E6AE1;
+}
+
+.slideIndicatorInactive {
+  width: 8px;
+  height: 8px;
+  background: #D1D5DB;
+}
+
+.chartContainer {
+  width: 100%;
+  height: 120px;
+}
+
+.chartContainerLarge {
+  width: 100%;
+  height: 160px;
+}
+
+.radialContainer {
+  width: 100%;
+  height: 160px;
+}
+
+.progressBar {
+  background: linear-gradient(90deg, #1E6AE1, #2AB3A6);
+}
+
+.progressBar[data-width="0"] { width: 0%; }
+.progressBar[data-width="10"] { width: 10%; }
+.progressBar[data-width="20"] { width: 20%; }
+.progressBar[data-width="30"] { width: 30%; }
+.progressBar[data-width="40"] { width: 40%; }
+.progressBar[data-width="50"] { width: 50%; }
+.progressBar[data-width="60"] { width: 60%; }
+.progressBar[data-width="70"] { width: 70%; }
+.progressBar[data-width="80"] { width: 80%; }
+.progressBar[data-width="90"] { width: 90%; }
+.progressBar[data-width="100"] { width: 100%; }

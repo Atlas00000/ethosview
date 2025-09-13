@@ -16,10 +16,11 @@ func InitPostgreSQL() (*sql.DB, error) {
 	user := getEnv("DB_USER", "postgres")
 	password := getEnv("DB_PASSWORD", "password")
 	dbname := getEnv("DB_NAME", "ethosview")
+	sslmode := getEnv("DB_SSL_MODE", "disable")
 
 	// Create connection string
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		host, port, user, password, dbname, sslmode)
 
 	// Open database connection
 	db, err := sql.Open("postgres", psqlInfo)

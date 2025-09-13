@@ -1,5 +1,7 @@
+import { supabase } from '../lib/supabase'
+
 const isServer = typeof window === "undefined";
-const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 const INTERNAL_API_BASE_URL = process.env.INTERNAL_API_BASE_URL ?? PUBLIC_API_BASE_URL;
 export const API_BASE_URL = isServer ? INTERNAL_API_BASE_URL : PUBLIC_API_BASE_URL;
 
@@ -122,6 +124,108 @@ export async function getJson<T>(path: string, init?: RequestInit, ttlMs = 15000
   inflight.set(key, fetchPromise);
   return (await fetchPromise) as T;
 }
+
+// Supabase API functions
+export const supabaseApi = {
+  // Companies
+  getCompanies: async () => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .order('name');
+    if (error) throw error;
+    return data;
+  },
+  
+  getCompanyById: async (id: string) => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  
+  getCompanyBySymbol: async (symbol: string) => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('symbol', symbol.toUpperCase())
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  // ESG Scores
+  getESGScores: async (limit = 20, offset = 0) => {
+    const { data, error } = await supabase
+      .from('esg_scores')
+      .select(`
+        *,
+        companies (
+          id,
+          name,
+          symbol,
+          sector
+        )
+      `)
+      .order('overall_score', { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (error) throw error;
+    return data;
+  },
+
+  getLatestESGByCompany: async (companyId: string) => {
+    const { data, error } = await supabase
+      .from('esg_scores')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('date', { ascending: false })
+      .limit(1)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  getESGTrends: async (companyId: string, days = 30) => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const { data, error } = await supabase
+      .from('esg_scores')
+      .select('*')
+      .eq('company_id', companyId)
+      .gte('date', startDate.toISOString().split('T')[0])
+      .order('date', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  // Users
+  createUser: async (email: string, passwordHash: string) => {
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        email,
+        password_hash: passwordHash
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  getUserByEmail: async (email: string) => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+    if (error) throw error;
+    return data;
+  }
+};
 
 export const api = {
   dashboard: () => getJson("/api/v1/dashboard"),

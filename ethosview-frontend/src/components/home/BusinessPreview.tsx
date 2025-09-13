@@ -52,7 +52,7 @@ export function BusinessPreview({ dashboard }: { dashboard: DashboardResponse })
 							<div key={it.id} className="py-2 flex items-center justify-between hover-lift">
 								<div className="truncate pr-3">
 									<div className="text-sm font-medium truncate" style={{ color: "#0B2545" }}>{it.company_name || `#${it.company_id}`}</div>
-									<div className="text-xs" style={{ color: "#374151" }}>{it.company_symbol ? it.company_symbol : '—'} • {new Date(it.score_date).toISOString().slice(0,10)}</div>
+									<div className="text-xs" style={{ color: "#374151" }}>{it.company_symbol ? it.company_symbol : '—'} • {it.score_date ? new Date(it.score_date).toISOString().slice(0,10) : 'N/A'}</div>
 								</div>
 								<div className="text-sm font-semibold" style={{ color: "#1D9A6C" }}>{it.overall_score.toFixed(2)}</div>
 							</div>

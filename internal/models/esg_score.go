@@ -36,7 +36,7 @@ func NewESGScoreRepository(db *sql.DB) *ESGScoreRepository {
 // CreateESGScore creates a new ESG score
 func (r *ESGScoreRepository) CreateESGScore(score *ESGScore) error {
 	query := `
-		INSERT INTO esg_scores (company_id, environmental_score, social_score, governance_score, overall_score, score_date, data_source)
+		INSERT INTO esg_scores (company_id, environmental_score, social_score, governance_score, overall_score, date, data_source)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at, updated_at
 	`
@@ -235,7 +235,7 @@ func (r *ESGScoreRepository) UpdateESGScore(score *ESGScore) error {
 	query := `
 		UPDATE esg_scores 
 		SET environmental_score = $1, social_score = $2, governance_score = $3, 
-		    overall_score = $4, score_date = $5, data_source = $6, updated_at = CURRENT_TIMESTAMP
+		    overall_score = $4, date = $5, data_source = $6, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $7
 		RETURNING updated_at
 	`

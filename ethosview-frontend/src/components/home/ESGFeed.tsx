@@ -29,7 +29,7 @@ export function ESGFeed({ list }: { list: ESGScoresListResponse }) {
             <div key={s.id} className="p-3 flex items-center justify-between hover-lift tilt-hover">
               <div className="truncate pr-3">
                 <div className="text-sm font-medium" style={{ color: "#0B2545" }}>{s.company_name || s.company_id}</div>
-                <div className="text-xs" style={{ color: "#374151" }}>{new Date(s.score_date).toISOString().slice(0,10)} {s.company_symbol ? `• ${s.company_symbol}` : ''}</div>
+                <div className="text-xs" style={{ color: "#374151" }}>{s.score_date ? new Date(s.score_date).toISOString().slice(0,10) : 'N/A'} {s.company_symbol ? `• ${s.company_symbol}` : ''}</div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="text-sm font-semibold" style={{ color: "#1D9A6C" }}><CountUpValue value={typeof s.overall_score === 'number' ? s.overall_score : 0} /></div>
