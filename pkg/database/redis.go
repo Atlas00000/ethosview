@@ -29,10 +29,16 @@ func InitRedis() (*redis.Client, error) {
 			}
 		}
 
+		// Extract password from URL
+		var password string
+		if parsedURL.User != nil {
+			password, _ = parsedURL.User.Password()
+		}
+
 		// Create Redis client
 		client := redis.NewClient(&redis.Options{
 			Addr:      parsedURL.Host,
-			Password:  parsedURL.User.Username(),
+			Password:  password,
 			DB:        0,
 			PoolSize:  10,
 			TLSConfig: tlsConfig,
